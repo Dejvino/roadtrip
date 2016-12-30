@@ -1,7 +1,12 @@
+# backups
+*.*~
+
+# binary / temporary
 *.class
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+build/
+dist/
+nbproject/private/
 
 # Package Files #
 *.jar
