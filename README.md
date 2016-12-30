@@ -1,7 +1,7 @@
 # RoadTrip
 A game about a journey involving vehicles and obstacles.
 
-[[https://github.com/Dejvino/roadtrip/blob/master/screenshot.png|alt=Game Screenshot]]
+![Screenshot](https://github.com/Dejvino/roadtrip/blob/master/screenshot.png)
 
 ## Status
 ### DONE
