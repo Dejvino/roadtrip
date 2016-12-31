@@ -10,10 +10,10 @@ A game about a journey involving vehicles and obstacles.
 * Camera following the player
 * Hilly ground
 * Collidable objects - static and dynamic
+* People
+* Walking around - NPCs
 
 ### TODO
 * Orbit camera
-* People
-* Walking around - NPCs
 * Walking around - Player
 * Enter / Exit a car
