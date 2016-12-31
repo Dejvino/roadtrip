@@ -1,0 +1,24 @@
+<scene exported_by="dejvino" export_time="1483218291.9523585" formatVersion="1.0.1" previous_export_time="1483218209.9221447" >
+  <nodes >
+    <node name="Cube" >
+      <position y="1.693228" z="-0.000000" x="0.000000" />
+      <rotation qz="-0.000000" qw="1.000000" qx="0.000000" qy="0.000000" />
+      <scale y="1.642234" z="0.377920" x="0.377920" />
+      <game >
+        <sensors />
+        <actuators />
+      </game>
+      <entity damping_trans="0.02539999969303608" meshFile="Cube.mesh" ghost="False" friction_y="1.0" lock_rot_x="False" mass="1.0" anisotropic_friction="False" actor="False" lock_trans_z="False" lock_rot_z="False" name="Cube" lock_trans_y="False" mass_radius="1.0" damping_rot="0.1589999943971634" velocity_max="0.0" velocity_min="0.0" lock_trans_x="False" lock_rot_y="False" friction_x="1.0" physics_type="STATIC" inertia_tensor="0.4000000059604645" friction_z="1.0" />
+    </node>
+  </nodes>
+  <externals >
+    <item type="material" >
+      <file name="P:\Development\roadtrip\assets-src\Models\Material.material" />
+    </item>
+  </externals>
+  <environment >
+    <colourAmbient g="0.0" r="0.0" b="0.0" />
+    <colourBackground g="0.05087608844041824" r="0.05087608844041824" b="0.05087608844041824" />
+    <colourDiffuse g="0.05087608844041824" r="0.05087608844041824" b="0.05087608844041824" />
+  </environment>
+</scene>

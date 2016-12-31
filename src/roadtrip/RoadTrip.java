@@ -5,6 +5,8 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.collision.shapes.CompoundCollisionShape;
+import com.jme3.bullet.control.BetterCharacterControl;
+import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.control.VehicleControl;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -17,6 +19,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 
 /**
@@ -25,6 +28,7 @@ import com.jme3.scene.shape.Cylinder;
  */
 public class RoadTrip extends SimpleApplication implements ActionListener {
 
+    public static boolean DEBUG = false;//true;
     final int WEAK = 1;
     final int TRUCK = 2;
     final int SPORT = 3;
@@ -51,7 +55,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     public void simpleInitApp() {
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-        bulletAppState.getPhysicsSpace().enableDebug(assetManager);
+        if (DEBUG) bulletAppState.getPhysicsSpace().enableDebug(assetManager);
         PhysicsTestHelper.createPhysicsTestWorld(rootNode, assetManager, bulletAppState.getPhysicsSpace());
         setupKeys();
         buildPlayer();
@@ -61,6 +65,12 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         getPhysicsSpace().addAll(map);
         
         vehicle.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
+        
+        addPerson();
+        addPerson();
+        addPerson();
+        addPerson();
+        addPerson();
     }
 
     private PhysicsSpace getPhysicsSpace(){
@@ -87,7 +97,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     private void buildPlayer() {
         Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
-        mat.setColor("Color", ColorRGBA.Red);
+        mat.setColor("Color", ColorRGBA.Black);
 
         //create a compound shape and attach the BoxCollisionShape for the car body at 0,1,0
         //this shifts the effective center of mass of the BoxCollisionShape to 0,-1,0
@@ -127,6 +137,12 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         float xOff = 1.6f;
         float zOff = 2f;
 
+        Geometry carBody = new Geometry("car body", new Box(new Vector3f(0.0f, 1f, 0.0f), 1.4f, 0.5f, 3.6f));
+        Material matBody = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        matBody.setColor("Color", ColorRGBA.Red);
+        carBody.setMaterial(matBody);
+        vehicleNode.attachChild(carBody);
+        
         Cylinder wheelMesh = new Cylinder(16, 16, radius, radius * 0.2f, true);
 
         Node node1 = new Node("wheel 1 node");
@@ -207,6 +223,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             accelerationForce = 20000f;
             brakeForce = 200f;
         }
+        mat.getAdditionalRenderState().setWireframe(false);
     }
 
     @Override
@@ -284,5 +301,26 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             } else {
             }
         }
+    }
+
+    private void addPerson() {
+        Spatial personModel = assetManager.loadModel("Models/person.j3o");
+        Node person = new Node("person");
+        person.attachChild(personModel);
+        BetterCharacterControl personControl = new BetterCharacterControl(1f, 4f, 10f);
+        /*personModel.setLocalTranslation(0f, -1f, 0f);
+        BoxCollisionShape personShape = new BoxCollisionShape(new Vector3f(0.5f, 2f, 0.5f));
+        RigidBodyControl personControl = new RigidBodyControl(personShape, 80f);/**/
+        person.addControl(personControl);
+        /**/personControl.setJumpForce(new Vector3f(0,5f,0));
+        personControl.setGravity(new Vector3f(0,1f,0));
+        personControl.warp(new Vector3f(10f + (float)Math.random() * 10f, 30f, 12f + (float)Math.random() * 10f));/**/
+        //personControl.setPhysicsLocation(new Vector3f(10f, 30f, 12f));
+        getPhysicsSpace().add(personControl);
+        getPhysicsSpace().addAll(person);
+        rootNode.attachChild(person);
+        Vector3f dir = new Vector3f((float)Math.random() * 2f - 1f, 0f, (float)Math.random() * 2f - 1f);
+        personControl.setViewDirection(dir);
+        personControl.setWalkDirection(dir);
     }
 }
