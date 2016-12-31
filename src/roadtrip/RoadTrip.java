@@ -72,12 +72,14 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addMapping("Rights", new KeyTrigger(KeyInput.KEY_K));
         inputManager.addMapping("Ups", new KeyTrigger(KeyInput.KEY_U));
         inputManager.addMapping("Downs", new KeyTrigger(KeyInput.KEY_J));
+        inputManager.addMapping("Revs", new KeyTrigger(KeyInput.KEY_M));
         inputManager.addMapping("Space", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Reset", new KeyTrigger(KeyInput.KEY_RETURN));
         inputManager.addListener(this, "Lefts");
         inputManager.addListener(this, "Rights");
         inputManager.addListener(this, "Ups");
         inputManager.addListener(this, "Downs");
+        inputManager.addListener(this, "Revs");
         inputManager.addListener(this, "Space");
         inputManager.addListener(this, "Reset");
     }
@@ -255,6 +257,18 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             }
             vehicle.brake(0, b);
             vehicle.brake(1, b);
+        } else if (binding.equals("Revs")) {
+            if (value) {
+                accelerationValue += accelerationForce;
+            } else {
+                accelerationValue -= accelerationForce;
+            }
+            vehicle.accelerate(2, -accelerationValue);
+            vehicle.accelerate(3, -accelerationValue);
+            if (carType == TRUCK) {
+                vehicle.accelerate(4, -accelerationValue);
+                vehicle.accelerate(5, -accelerationValue);
+            }
         } else if (binding.equals("Space")) {
             if (value) {
                 vehicle.applyImpulse(jumpForce, Vector3f.ZERO);
