@@ -11,9 +11,23 @@ A game about a journey involving vehicles and obstacles.
 * Hilly ground
 * Collidable objects - static and dynamic
 * People
-* Walking around - NPCs
+* Walking around (Player & NPCs)
 
 ### TODO
-* Orbit camera
-* Walking around - Player
 * Enter / Exit a car
+* Sounds - car engine
+* Sounds - crashes
+* Sounds - wheels
+* Target location (winning condition)
+* Main menu
+* Health indicator
+* NPC AI
+* Enemy NPCs - punching, shooting
+* Car models
+* Scenery models
+* Bigger map
+* Map transitions
+* Roadblocks
+* FPS camera
+* Orbit camera
+

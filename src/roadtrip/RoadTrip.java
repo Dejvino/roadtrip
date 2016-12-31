@@ -32,8 +32,9 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     final int WEAK = 1;
     final int TRUCK = 2;
     final int SPORT = 3;
+    final int FOOT = 4;
     
-    final int carType = SPORT;
+    final int carType = FOOT;
     
     private BulletAppState bulletAppState;
     private VehicleControl vehicle;
@@ -42,14 +43,18 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     private float steeringValue = 0;
     private float accelerationValue = 0;
     private Vector3f jumpForce = new Vector3f(0, 3000, 0);
+    private Vector3f walkDir = new Vector3f();
 
     public static void main(String[] args) {
         RoadTrip app = new RoadTrip();
         app.start();
     }
 
+    Node playerNode;
+    
     Spatial map;
     Spatial car;
+    private BetterCharacterControl playerPersonControl;
     
     @Override
     public void simpleInitApp() {
@@ -58,13 +63,16 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         if (DEBUG) bulletAppState.getPhysicsSpace().enableDebug(assetManager);
         PhysicsTestHelper.createPhysicsTestWorld(rootNode, assetManager, bulletAppState.getPhysicsSpace());
         setupKeys();
-        buildPlayer();
         
         map = assetManager.loadModel("Scenes/TestMap.j3o");
         rootNode.attachChild(map);
         getPhysicsSpace().addAll(map);
         
-        vehicle.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
+        if (carType == FOOT) {
+            addPlayerPerson();
+        } else {
+            addPlayerCar();
+        }
         
         addPerson();
         addPerson();
@@ -94,7 +102,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addListener(this, "Reset");
     }
 
-    private void buildPlayer() {
+    private void addPlayerCar() {
         Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
         mat.setColor("Color", ColorRGBA.Black);
@@ -222,88 +230,122 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         } else if (carType == SPORT) {
             accelerationForce = 20000f;
             brakeForce = 200f;
+        
         }
-        mat.getAdditionalRenderState().setWireframe(false);
+        vehicle.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
+        
+        playerNode = vehicleNode;
     }
 
     @Override
     public void simpleUpdate(float tpf) {
-        Vector3f vehicleLocation = vehicle.getPhysicsLocation();
-        Vector3f newLocation = new Vector3f(vehicleLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
+        Vector3f playerLocation = playerNode.getLocalTranslation();
+        Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
         cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
-        cam.lookAt(vehicleLocation, Vector3f.UNIT_Y);
+        cam.lookAt(playerLocation, Vector3f.UNIT_Y);
     }
 
     public void onAction(String binding, boolean value, float tpf) {
-        float steerMax = 0.5f;
-        if (carType == TRUCK) {
-            steerMax = 0.7f;
-        }
-        if (binding.equals("Lefts")) {
-            if (value) {
-                steeringValue += steerMax;
-            } else {
-                steeringValue += -steerMax;
+        if (carType == FOOT) {
+            float walkSpeed = 3f;
+            if (binding.equals("Lefts")) {
+                if (value) {
+                    walkDir.x -= walkSpeed;
+                } else {
+                    walkDir.x += walkSpeed;
+                }
+            } else if (binding.equals("Rights")) {
+                if (value) {
+                    walkDir.x += walkSpeed;
+                } else {
+                    walkDir.x -= walkSpeed;
+                }
+            } else if (binding.equals("Ups")) {
+                if (value) {
+                    walkDir.z -= walkSpeed;
+                } else {
+                    walkDir.z += walkSpeed;
+                }
+            } else if (binding.equals("Downs")) {
+                if (value) {
+                    walkDir.z += walkSpeed;
+                } else {
+                    walkDir.z -= walkSpeed;
+                }
             }
-            vehicle.steer(steeringValue);
-        } else if (binding.equals("Rights")) {
-            if (value) {
-                steeringValue += -steerMax;
-            } else {
-                steeringValue += steerMax;
-            }
-            vehicle.steer(steeringValue);
-        } else if (binding.equals("Ups")) {
-            if (value) {
-                accelerationValue += accelerationForce;
-            } else {
-                accelerationValue -= accelerationForce;
-            }
-            vehicle.accelerate(2, accelerationValue);
-            vehicle.accelerate(3, accelerationValue);
+            playerPersonControl.setWalkDirection(walkDir);
+            playerPersonControl.setViewDirection(walkDir);
+        } else {
+            float steerMax = 0.5f;
             if (carType == TRUCK) {
-                vehicle.accelerate(4, accelerationValue);
-                vehicle.accelerate(5, accelerationValue);
+                steerMax = 0.7f;
             }
-        } else if (binding.equals("Downs")) {
-            float b;
-            if (value) {
-                b = brakeForce;
-            } else {
-                b = 0f;
-            }
-            vehicle.brake(0, b);
-            vehicle.brake(1, b);
-        } else if (binding.equals("Revs")) {
-            if (value) {
-                accelerationValue += accelerationForce;
-            } else {
-                accelerationValue -= accelerationForce;
-            }
-            vehicle.accelerate(2, -accelerationValue);
-            vehicle.accelerate(3, -accelerationValue);
-            if (carType == TRUCK) {
-                vehicle.accelerate(4, -accelerationValue);
-                vehicle.accelerate(5, -accelerationValue);
-            }
-        } else if (binding.equals("Space")) {
-            if (value) {
-                vehicle.applyImpulse(jumpForce, Vector3f.ZERO);
-            }
-        } else if (binding.equals("Reset")) {
-            if (value) {
-                System.out.println("Reset");
-                vehicle.setPhysicsLocation(Vector3f.ZERO);
-                vehicle.setPhysicsRotation(new Matrix3f());
-                vehicle.setLinearVelocity(Vector3f.ZERO);
-                vehicle.setAngularVelocity(Vector3f.ZERO);
-                vehicle.resetSuspension();
-            } else {
+            if (binding.equals("Lefts")) {
+                if (value) {
+                    steeringValue += steerMax;
+                } else {
+                    steeringValue += -steerMax;
+                }
+                vehicle.steer(steeringValue);
+            } else if (binding.equals("Rights")) {
+                if (value) {
+                    steeringValue += -steerMax;
+                } else {
+                    steeringValue += steerMax;
+                }
+                vehicle.steer(steeringValue);
+            } else if (binding.equals("Ups")) {
+                if (value) {
+                    accelerationValue += accelerationForce;
+                } else {
+                    accelerationValue -= accelerationForce;
+                }
+                vehicle.accelerate(2, accelerationValue);
+                vehicle.accelerate(3, accelerationValue);
+                if (carType == TRUCK) {
+                    vehicle.accelerate(4, accelerationValue);
+                    vehicle.accelerate(5, accelerationValue);
+                }
+            } else if (binding.equals("Downs")) {
+                float b;
+                if (value) {
+                    b = brakeForce;
+                } else {
+                    b = 0f;
+                }
+                vehicle.brake(0, b);
+                vehicle.brake(1, b);
+            } else if (binding.equals("Revs")) {
+                if (value) {
+                    accelerationValue += accelerationForce;
+                } else {
+                    accelerationValue -= accelerationForce;
+                }
+                vehicle.accelerate(2, -accelerationValue);
+                vehicle.accelerate(3, -accelerationValue);
+                if (carType == TRUCK) {
+                    vehicle.accelerate(4, -accelerationValue);
+                    vehicle.accelerate(5, -accelerationValue);
+                }
+            } else if (binding.equals("Space")) {
+                if (value) {
+                    vehicle.applyImpulse(jumpForce, Vector3f.ZERO);
+                }
+            } else if (binding.equals("Reset")) {
+                if (value) {
+                    System.out.println("Reset");
+                    vehicle.setPhysicsLocation(Vector3f.ZERO);
+                    vehicle.setPhysicsRotation(new Matrix3f());
+                    vehicle.setLinearVelocity(Vector3f.ZERO);
+                    vehicle.setAngularVelocity(Vector3f.ZERO);
+                    vehicle.resetSuspension();
+                } else {
+                }
             }
         }
     }
 
-    private void addPerson() {
+    private Node addPerson() {
         Spatial personModel = assetManager.loadModel("Models/person.j3o");
         Node person = new Node("person");
         person.attachChild(personModel);
@@ -322,5 +364,13 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         Vector3f dir = new Vector3f((float)Math.random() * 2f - 1f, 0f, (float)Math.random() * 2f - 1f);
         personControl.setViewDirection(dir);
         personControl.setWalkDirection(dir);
+        
+        return person;
+    }
+
+    private void addPlayerPerson()
+    {
+        playerNode = addPerson();
+        playerPersonControl = playerNode.getControl(BetterCharacterControl.class);
     }
 }
