@@ -209,8 +209,10 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
 
     @Override
     public void simpleUpdate(float tpf) {
-        cam.setLocation(new Vector3f(-10f, 35f, -10f));
-        cam.lookAt(vehicle.getPhysicsLocation(), Vector3f.UNIT_Y);
+        Vector3f vehicleLocation = vehicle.getPhysicsLocation();
+        Vector3f newLocation = new Vector3f(vehicleLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
+        cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
+        cam.lookAt(vehicleLocation, Vector3f.UNIT_Y);
     }
 
     public void onAction(String binding, boolean value, float tpf) {

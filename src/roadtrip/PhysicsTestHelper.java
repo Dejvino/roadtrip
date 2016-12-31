@@ -72,38 +72,18 @@ public class PhysicsTestHelper {
         Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         material.setTexture("ColorMap", assetManager.loadTexture("Interface/Logo/Monkey.jpg"));
 
-        Box floorBox = new Box(140, 0.25f, 140);
-        Geometry floorGeometry = new Geometry("Floor", floorBox);
-        floorGeometry.setMaterial(material);
-        floorGeometry.setLocalTranslation(0, -5, 0);
-//        Plane plane = new Plane();
-//        plane.setOriginNormal(new Vector3f(0, 0.25f, 0), Vector3f.UNIT_Y);
-//        floorGeometry.addControl(new RigidBodyControl(new PlaneCollisionShape(plane), 0));
-        floorGeometry.addControl(new RigidBodyControl(0));
-        rootNode.attachChild(floorGeometry);
-        space.add(floorGeometry);
-
         //movable boxes
-        for (int i = 0; i < 12; i++) {
-            Box box = new Box(0.25f, 0.25f, 0.25f);
+        for (int i = 0; i < 20; i++) {
+            float s = i % 3 == 0 ? 1f : 0.4f;
+            Box box = new Box(s, s, s);
             Geometry boxGeometry = new Geometry("Box", box);
             boxGeometry.setMaterial(material);
-            boxGeometry.setLocalTranslation(i, 5, -3);
+            boxGeometry.setLocalTranslation(i * 1.2f, 35, -3);
             //RigidBodyControl automatically uses box collision shapes when attached to single geometry with box mesh
             boxGeometry.addControl(new RigidBodyControl(2));
             rootNode.attachChild(boxGeometry);
             space.add(boxGeometry);
         }
-
-        //immovable sphere with mesh collision shape
-        Sphere sphere = new Sphere(8, 8, 1);
-        Geometry sphereGeometry = new Geometry("Sphere", sphere);
-        sphereGeometry.setMaterial(material);
-        sphereGeometry.setLocalTranslation(4, -4, 2);
-        sphereGeometry.addControl(new RigidBodyControl(new MeshCollisionShape(sphere), 0));
-        rootNode.attachChild(sphereGeometry);
-        space.add(sphereGeometry);
-
     }
     
     public static void createPhysicsTestWorldSoccer(Node rootNode, AssetManager assetManager, PhysicsSpace space) {
