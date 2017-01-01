@@ -1,6 +1,8 @@
 package roadtrip;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.audio.AudioNode;
+import com.jme3.audio.Environment;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
@@ -21,6 +23,8 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
+import org.lwjgl.openal.AL10;
+import org.lwjgl.openal.AL11;
 
 /**
  *
@@ -34,7 +38,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     final int SPORT = 3;
     final int FOOT = 4;
     
-    final int carType = FOOT;
+    final int carType = WEAK;
     
     private BulletAppState bulletAppState;
     private VehicleControl vehicle;
@@ -42,6 +46,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     private float brakeForce = 100.0f;
     private float steeringValue = 0;
     private float accelerationValue = 0;
+    private float accelerationSmooth = 0;
     private Vector3f jumpForce = new Vector3f(0, 3000, 0);
     private Vector3f walkDir = new Vector3f();
 
@@ -56,6 +61,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     Spatial car;
     private BetterCharacterControl playerPersonControl;
     
+    AudioNode engineAudio;
+    
     @Override
     public void simpleInitApp() {
         bulletAppState = new BulletAppState();
@@ -64,9 +71,10 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         PhysicsTestHelper.createPhysicsTestWorld(rootNode, assetManager, bulletAppState.getPhysicsSpace());
         setupKeys();
         
-        map = assetManager.loadModel("Scenes/TestMap.j3o");
-        rootNode.attachChild(map);
-        getPhysicsSpace().addAll(map);
+        audioRenderer.setEnvironment(Environment.Dungeon);
+        AL10.alDistanceModel(AL11.AL_EXPONENT_DISTANCE);
+        
+        addMap();
         
         if (carType == FOOT) {
             addPlayerPerson();
@@ -234,6 +242,16 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         }
         vehicle.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
         
+        engineAudio  = new AudioNode(assetManager, "Sounds/engine.ogg", false);
+        engineAudio.setPositional(true);
+        engineAudio.setLooping(true);
+        engineAudio.setReverbEnabled(true);
+        engineAudio.setRefDistance(100000000);
+        engineAudio.setMaxDistance(100000000);
+        engineAudio.setLooping(true);
+        engineAudio.play();
+        vehicleNode.attachChild(engineAudio);
+        
         playerNode = vehicleNode;
     }
 
@@ -243,6 +261,12 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
         cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
         cam.lookAt(playerLocation, Vector3f.UNIT_Y);
+        
+        accelerationSmooth = (accelerationSmooth + accelerationValue * (tpf * 10f)) / (1 + tpf * 10f);
+        //engineAudio.setVelocity(new Vector3f(0, 0, 0));
+        //engineAudio.setLocalTranslation(x, 0, z);
+        engineAudio.updateGeometricState();
+        engineAudio.setPitch(Math.max(0.5f, Math.min(accelerationSmooth / accelerationForce * 2f, 2.0f)));
     }
 
     public void onAction(String binding, boolean value, float tpf) {
@@ -372,5 +396,11 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     {
         playerNode = addPerson();
         playerPersonControl = playerNode.getControl(BetterCharacterControl.class);
+    }
+
+    private void addMap() {
+        map = assetManager.loadModel("Scenes/TestMap.j3o");
+        rootNode.attachChild(map);
+        getPhysicsSpace().addAll(map);
     }
 }
