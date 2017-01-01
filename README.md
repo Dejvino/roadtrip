@@ -12,12 +12,11 @@ A game about a journey involving vehicles and obstacles.
 * Collidable objects - static and dynamic
 * People
 * Walking around (Player & NPCs)
+* Sounds - car engine, wheels & slips
 
 ### TODO
 * Enter / Exit a car
-* Sounds - car engine
 * Sounds - crashes
-* Sounds - wheels
 * Target location (winning condition)
 * Main menu
 * Health indicator

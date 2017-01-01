@@ -38,7 +38,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     final int SPORT = 3;
     final int FOOT = 4;
     
-    final int carType = WEAK;
+    final int carType = SPORT;
     
     private BulletAppState bulletAppState;
     private VehicleControl vehicle;
@@ -62,6 +62,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     private BetterCharacterControl playerPersonControl;
     
     AudioNode engineAudio;
+    AudioNode wheelsAudio;
+    AudioNode wheelSlipAudio;
     
     @Override
     public void simpleInitApp() {
@@ -71,8 +73,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         PhysicsTestHelper.createPhysicsTestWorld(rootNode, assetManager, bulletAppState.getPhysicsSpace());
         setupKeys();
         
-        audioRenderer.setEnvironment(Environment.Dungeon);
-        AL10.alDistanceModel(AL11.AL_EXPONENT_DISTANCE);
+        //audioRenderer.setEnvironment(Environment.Dungeon);
+        //AL10.alDistanceModel(AL11.AL_EXPONENT_DISTANCE);
         
         addMap();
         
@@ -248,9 +250,26 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         engineAudio.setReverbEnabled(true);
         engineAudio.setRefDistance(100000000);
         engineAudio.setMaxDistance(100000000);
-        engineAudio.setLooping(true);
         engineAudio.play();
         vehicleNode.attachChild(engineAudio);
+        
+        wheelsAudio  = new AudioNode(assetManager, "Sounds/wheels.ogg", false);
+        wheelsAudio.setPositional(true);
+        wheelsAudio.setLooping(true);
+        //wheelsAudio.setReverbEnabled(true);
+        wheelsAudio.setRefDistance(100000000);
+        wheelsAudio.setMaxDistance(100000000);
+        wheelsAudio.play();
+        vehicleNode.attachChild(wheelsAudio);
+        
+        wheelSlipAudio  = new AudioNode(assetManager, "Sounds/wheel-slip.ogg", false);
+        wheelSlipAudio.setPositional(true);
+        wheelSlipAudio.setLooping(true);
+        //wheelsAudio.setReverbEnabled(true);
+        wheelSlipAudio.setRefDistance(100000000);
+        wheelSlipAudio.setMaxDistance(100000000);
+        wheelSlipAudio.play();
+        vehicleNode.attachChild(wheelSlipAudio);
         
         playerNode = vehicleNode;
     }
@@ -267,6 +286,24 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         //engineAudio.setLocalTranslation(x, 0, z);
         engineAudio.updateGeometricState();
         engineAudio.setPitch(Math.max(0.5f, Math.min(accelerationSmooth / accelerationForce * 2f, 2.0f)));
+        
+        wheelsAudio.updateGeometricState();
+        float wheelRot = Math.abs(vehicle.getWheel(0).getDeltaRotation() + vehicle.getWheel(1).getDeltaRotation()) / tpf / 40f;
+        // TODO: pitch
+        //System.out.println("wheel rot: " + wheelRot);
+        //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
+        wheelsAudio.setVolume(Math.max(0.0001f, Math.min(wheelRot, 1.0f)) - 0.0001f);
+        
+        wheelSlipAudio.updateGeometricState();
+        float slipAll = 0f;
+        for (int i = 0; i < vehicle.getNumWheels(); i++) {
+            slipAll += vehicle.getWheel(i).getSkidInfo();
+        }
+        float slip = 1f - (slipAll) / vehicle.getNumWheels();
+        float wheelSlip = (slip * slip * slip * slip * slip * slip * slip) / tpf / 40f;
+        // TODO: pitch
+        //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
+        wheelSlipAudio.setVolume(Math.max(0.0001f, Math.min(wheelSlip, 1.0f)) - 0.0001f);
     }
 
     public void onAction(String binding, boolean value, float tpf) {
