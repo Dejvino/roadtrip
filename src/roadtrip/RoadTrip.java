@@ -2,6 +2,8 @@ package roadtrip;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.audio.AudioNode;
+import com.jme3.audio.AudioSource;
+import com.jme3.audio.AudioSource.Status;
 import com.jme3.audio.Environment;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.PhysicsSpace;
@@ -23,6 +25,8 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
+import java.util.LinkedList;
+import java.util.List;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.AL11;
 
@@ -33,37 +37,93 @@ import org.lwjgl.openal.AL11;
 public class RoadTrip extends SimpleApplication implements ActionListener {
 
     public static boolean DEBUG = false;//true;
-    final int WEAK = 1;
-    final int TRUCK = 2;
-    final int SPORT = 3;
-    final int FOOT = 4;
-    
-    final int carType = SPORT;
     
     private BulletAppState bulletAppState;
-    private VehicleControl vehicle;
-    private float accelerationForce = 200.0f;
-    private float brakeForce = 100.0f;
-    private float steeringValue = 0;
-    private float accelerationValue = 0;
-    private float accelerationSmooth = 0;
+    
+    private VehicleNode playerVehicleNode;
+    
+    private List<VehicleNode> vehicles = new LinkedList<>();
+    
+    private static class WeakVehicle extends VehicleInstance
+    {
+        WeakVehicle()
+        {
+            super(WEAK, 200.0f, 100.0f);
+        }
+    }
+    
+    private static class TruckVehicle extends VehicleInstance
+    {
+        TruckVehicle()
+        {
+            super(TRUCK, 1400.0f, 200.0f);
+        }
+    }
+    
+    private static class SportVehicle extends VehicleInstance
+    {
+        SportVehicle()
+        {
+            super(SPORT, 20000.0f, 200.0f);
+        }
+    }
+    
+    private static class VehicleInstance
+    {
+        final static int WEAK = 1;
+        final static int TRUCK = 2;
+        final static int SPORT = 3;
+        final static int FOOT = 4;
+    
+        int carType;
+        float accelerationForce = 200.0f;
+        float brakeForce = 100.0f;
+        float steeringValue = 0;
+        float accelerationValue = 0;
+        float accelerationSmooth = 0;
+        
+        VehicleInstance(int carType, float accelerationForce, float brakeForce)
+        {
+            this.carType = carType;
+            this.accelerationForce = accelerationForce;
+            this.brakeForce = brakeForce;
+        }
+    }
+    
+    private static class VehicleNode extends Node
+    {
+        VehicleInstance vehicleInstance;
+        
+        VehicleControl vehicleControl;
+        
+        Spatial vehicleModel;
+        
+        AudioNode engineAudio;
+        AudioNode wheelsAudio;
+        AudioNode wheelSlipAudio;
+
+        public VehicleNode(String name, VehicleInstance vehicleInstance,
+                VehicleControl vehicleControl, Spatial vehicleModel)
+        {
+            super(name);
+            this.vehicleInstance = vehicleInstance;
+            this.vehicleControl = vehicleControl;
+            this.vehicleModel = vehicleModel;
+        }
+    }
+    
+    private Node playerNode;
+    private BetterCharacterControl playerPersonControl;
     private Vector3f jumpForce = new Vector3f(0, 3000, 0);
     private Vector3f walkDir = new Vector3f();
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         RoadTrip app = new RoadTrip();
         app.start();
     }
-
-    Node playerNode;
     
     Spatial map;
-    Spatial car;
-    private BetterCharacterControl playerPersonControl;
-    
-    AudioNode engineAudio;
-    AudioNode wheelsAudio;
-    AudioNode wheelSlipAudio;
     
     @Override
     public void simpleInitApp() {
@@ -78,12 +138,15 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         addMap();
         
-        if (carType == FOOT) {
-            addPlayerPerson();
-        } else {
-            addPlayerCar();
-        }
+        addPlayer();
         
+        addCar();
+        addCar();
+        addCar();
+        addCar();
+        addCar();
+        addPerson();
+        addPerson();
         addPerson();
         addPerson();
         addPerson();
@@ -112,7 +175,11 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addListener(this, "Reset");
     }
 
-    private void addPlayerCar() {
+    private void addCar()
+    {
+        Node vehicleModel = new Node("VehicleModel");
+        VehicleInstance vehicleInstance = new WeakVehicle();
+        
         Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
         mat.setColor("Color", ColorRGBA.Black);
@@ -123,28 +190,26 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         BoxCollisionShape box = new BoxCollisionShape(new Vector3f(1.4f, 0.5f, 3.6f));
         compoundShape.addChildShape(box, new Vector3f(0, 1, 0));
         
-        if (carType == TRUCK) {
+        if (vehicleInstance.carType == VehicleInstance.TRUCK) {
             BoxCollisionShape boxCabin = new BoxCollisionShape(new Vector3f(1.4f, 0.8f, 1.0f));
             compoundShape.addChildShape(boxCabin, new Vector3f(0, 2, 2f));
-        } else if (carType == SPORT) {
+        } else if (vehicleInstance.carType == VehicleInstance.SPORT) {
             BoxCollisionShape boxCabin = new BoxCollisionShape(new Vector3f(1.2f, 0.6f, 2.0f));
             compoundShape.addChildShape(boxCabin, new Vector3f(0, 2, -1f));
         }
 
-        //create vehicle node
-        Node vehicleNode=new Node("vehicleNode");
-        vehicle = new VehicleControl(compoundShape, 500);
-        vehicleNode.addControl(vehicle);
-
+        VehicleControl vehicleControl = new VehicleControl(compoundShape, 500);
+        vehicleModel.addControl(vehicleControl);
+        
         //setting suspension values for wheels, this can be a bit tricky
         //see also https://docs.google.com/Doc?docid=0AXVUZ5xw6XpKZGNuZG56a3FfMzU0Z2NyZnF4Zmo&hl=en
         float stiffness = 30.0f;//200=f1 car
         float compValue = .1f; //(should be lower than damp)
         float dampValue = .2f;
-        vehicle.setSuspensionCompression(compValue * 2.0f * FastMath.sqrt(stiffness));
-        vehicle.setSuspensionDamping(dampValue * 2.0f * FastMath.sqrt(stiffness));
-        vehicle.setSuspensionStiffness(stiffness);
-        vehicle.setMaxSuspensionForce(10000.0f);
+        vehicleControl.setSuspensionCompression(compValue * 2.0f * FastMath.sqrt(stiffness));
+        vehicleControl.setSuspensionDamping(dampValue * 2.0f * FastMath.sqrt(stiffness));
+        vehicleControl.setSuspensionStiffness(stiffness);
+        vehicleControl.setMaxSuspensionForce(10000.0f);
 
         //Create four wheels and add them at their locations
         Vector3f wheelDirection = new Vector3f(0, -1, 0); // was 0, -1, 0
@@ -159,7 +224,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         Material matBody = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         matBody.setColor("Color", ColorRGBA.Red);
         carBody.setMaterial(matBody);
-        vehicleNode.attachChild(carBody);
+        vehicleModel.attachChild(carBody);
         
         Cylinder wheelMesh = new Cylinder(16, 16, radius, radius * 0.2f, true);
 
@@ -168,7 +233,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         node1.attachChild(wheels1);
         wheels1.rotate(0, FastMath.HALF_PI, 0);
         wheels1.setMaterial(mat);
-        vehicle.addWheel(node1, new Vector3f(-xOff, yOff, zOff),
+        vehicleControl.addWheel(node1, new Vector3f(-xOff, yOff, zOff),
                 wheelDirection, wheelAxle, restLength, radius, true);
 
         Node node2 = new Node("wheel 2 node");
@@ -176,7 +241,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         node2.attachChild(wheels2);
         wheels2.rotate(0, FastMath.HALF_PI, 0);
         wheels2.setMaterial(mat);
-        vehicle.addWheel(node2, new Vector3f(xOff, yOff, zOff),
+        vehicleControl.addWheel(node2, new Vector3f(xOff, yOff, zOff),
                 wheelDirection, wheelAxle, restLength, radius, true);
 
         Node node3 = new Node("wheel 3 node");
@@ -184,7 +249,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         node3.attachChild(wheels3);
         wheels3.rotate(0, FastMath.HALF_PI, 0);
         wheels3.setMaterial(mat);
-        vehicle.addWheel(node3, new Vector3f(-xOff, yOff, -zOff),
+        vehicleControl.addWheel(node3, new Vector3f(-xOff, yOff, -zOff),
                 wheelDirection, wheelAxle, restLength, radius, false);
 
         Node node4 = new Node("wheel 4 node");
@@ -192,21 +257,21 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         node4.attachChild(wheels4);
         wheels4.rotate(0, FastMath.HALF_PI, 0);
         wheels4.setMaterial(mat);
-        vehicle.addWheel(node4, new Vector3f(xOff, yOff, -zOff),
+        vehicleControl.addWheel(node4, new Vector3f(xOff, yOff, -zOff),
                 wheelDirection, wheelAxle, restLength, radius, false);
         
-        vehicleNode.attachChild(node1);
-        vehicleNode.attachChild(node2);
-        vehicleNode.attachChild(node3);
-        vehicleNode.attachChild(node4);
+        vehicleModel.attachChild(node1);
+        vehicleModel.attachChild(node2);
+        vehicleModel.attachChild(node3);
+        vehicleModel.attachChild(node4);
         
-        if (carType == TRUCK) {
+        if (vehicleInstance.carType == VehicleInstance.TRUCK) {
             Node node5 = new Node("wheel 5 node");
             Geometry wheels5 = new Geometry("wheel 5", wheelMesh);
             node5.attachChild(wheels5);
             wheels5.rotate(0, FastMath.HALF_PI, 0);
             wheels5.setMaterial(mat);
-            vehicle.addWheel(node5, new Vector3f(-xOff, yOff, 2.1f* -zOff),
+            vehicleControl.addWheel(node5, new Vector3f(-xOff, yOff, 2.1f* -zOff),
                     wheelDirection, wheelAxle, restLength, radius, false);
 
             Node node6 = new Node("wheel 6 node");
@@ -214,64 +279,61 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             node6.attachChild(wheels6);
             wheels6.rotate(0, FastMath.HALF_PI, 0);
             wheels6.setMaterial(mat);
-            vehicle.addWheel(node6, new Vector3f(xOff, yOff, 2.1f* -zOff),
+            vehicleControl.addWheel(node6, new Vector3f(xOff, yOff, 2.1f* -zOff),
                     wheelDirection, wheelAxle, restLength, radius, false);
             
-            vehicleNode.attachChild(node5);
-            vehicleNode.attachChild(node6);
+            vehicleModel.attachChild(node5);
+            vehicleModel.attachChild(node6);
         }
         
-        rootNode.attachChild(vehicleNode);
+        rootNode.attachChild(vehicleModel);
 
-        getPhysicsSpace().add(vehicle);
-        vehicle.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
+        getPhysicsSpace().add(vehicleControl);
+        vehicleControl.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
         
-        vehicle.getWheel(0).setFrictionSlip(0.8f);
-        vehicle.getWheel(1).setFrictionSlip(0.8f);
-        vehicle.getWheel(2).setFrictionSlip(0.6f);
-        vehicle.getWheel(3).setFrictionSlip(0.6f);
+        vehicleControl.getWheel(0).setFrictionSlip(0.8f);
+        vehicleControl.getWheel(1).setFrictionSlip(0.8f);
+        vehicleControl.getWheel(2).setFrictionSlip(0.6f);
+        vehicleControl.getWheel(3).setFrictionSlip(0.6f);
             
-        if (carType == TRUCK) {
-            vehicle.getWheel(4).setFrictionSlip(0.6f);
-            vehicle.getWheel(5).setFrictionSlip(0.6f);
-        
-            accelerationForce = 1400f;
-            brakeForce = 200f;
-        } else if (carType == SPORT) {
-            accelerationForce = 20000f;
-            brakeForce = 200f;
-        
+        if (vehicleInstance.carType == VehicleInstance.TRUCK) {
+            vehicleControl.getWheel(4).setFrictionSlip(0.6f);
+            vehicleControl.getWheel(5).setFrictionSlip(0.6f);
         }
-        vehicle.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
+        vehicleControl.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
         
-        engineAudio  = new AudioNode(assetManager, "Sounds/engine.ogg", false);
-        engineAudio.setPositional(true);
-        engineAudio.setLooping(true);
-        engineAudio.setReverbEnabled(true);
-        engineAudio.setRefDistance(100000000);
-        engineAudio.setMaxDistance(100000000);
-        engineAudio.play();
-        vehicleNode.attachChild(engineAudio);
+        VehicleNode vehicle = new VehicleNode("VehicleNode",
+                vehicleInstance, vehicleControl, vehicleModel);
+                
+        vehicle.engineAudio  = new AudioNode(assetManager, "Sounds/engine.ogg", false);
+        vehicle.engineAudio.setPositional(true);
+        vehicle.engineAudio.setLooping(true);
+        vehicle.engineAudio.setReverbEnabled(true);
+        vehicle.engineAudio.setRefDistance(10);
+        vehicle.engineAudio.setMaxDistance(100000000);
+        vehicle.attachChild(vehicle.engineAudio);
         
-        wheelsAudio  = new AudioNode(assetManager, "Sounds/wheels.ogg", false);
-        wheelsAudio.setPositional(true);
-        wheelsAudio.setLooping(true);
+        vehicle.wheelsAudio  = new AudioNode(assetManager, "Sounds/wheels.ogg", false);
+        vehicle.wheelsAudio.setPositional(true);
+        vehicle.wheelsAudio.setLooping(true);
         //wheelsAudio.setReverbEnabled(true);
-        wheelsAudio.setRefDistance(100000000);
-        wheelsAudio.setMaxDistance(100000000);
-        wheelsAudio.play();
-        vehicleNode.attachChild(wheelsAudio);
+        vehicle.wheelsAudio.setRefDistance(10);
+        vehicle.wheelsAudio.setMaxDistance(100000000);
+        vehicle.wheelsAudio.play();
+        vehicle.attachChild(vehicle.wheelsAudio);
         
-        wheelSlipAudio  = new AudioNode(assetManager, "Sounds/wheel-slip.ogg", false);
-        wheelSlipAudio.setPositional(true);
-        wheelSlipAudio.setLooping(true);
+        vehicle.wheelSlipAudio  = new AudioNode(assetManager, "Sounds/wheel-slip.ogg", false);
+        vehicle.wheelSlipAudio.setPositional(true);
+        vehicle.wheelSlipAudio.setLooping(true);
         //wheelsAudio.setReverbEnabled(true);
-        wheelSlipAudio.setRefDistance(100000000);
-        wheelSlipAudio.setMaxDistance(100000000);
-        wheelSlipAudio.play();
-        vehicleNode.attachChild(wheelSlipAudio);
+        vehicle.wheelSlipAudio.setRefDistance(10);
+        vehicle.wheelSlipAudio.setMaxDistance(100000000);
+        vehicle.wheelSlipAudio.play();
+        vehicle.attachChild(vehicle.wheelSlipAudio);
         
-        playerNode = vehicleNode;
+        vehicle.setLocalTranslation(new Vector3f(10f + (float)Math.random() * 20f, 30f, 12f + (float)Math.random() * 20f));
+        
+        vehicles.add(vehicle);
     }
 
     @Override
@@ -281,34 +343,46 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
         cam.lookAt(playerLocation, Vector3f.UNIT_Y);
         
-        accelerationSmooth = (accelerationSmooth + accelerationValue * (tpf * 10f)) / (1 + tpf * 10f);
-        //engineAudio.setVelocity(new Vector3f(0, 0, 0));
-        //engineAudio.setLocalTranslation(x, 0, z);
-        engineAudio.updateGeometricState();
-        engineAudio.setPitch(Math.max(0.5f, Math.min(accelerationSmooth / accelerationForce * 2f, 2.0f)));
-        
-        wheelsAudio.updateGeometricState();
-        float wheelRot = Math.abs(vehicle.getWheel(0).getDeltaRotation() + vehicle.getWheel(1).getDeltaRotation()) / tpf / 40f;
-        // TODO: pitch
-        //System.out.println("wheel rot: " + wheelRot);
-        //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
-        wheelsAudio.setVolume(Math.max(0.0001f, Math.min(wheelRot, 1.0f)) - 0.0001f);
-        
-        wheelSlipAudio.updateGeometricState();
-        float slipAll = 0f;
-        for (int i = 0; i < vehicle.getNumWheels(); i++) {
-            slipAll += vehicle.getWheel(i).getSkidInfo();
+        for (VehicleNode vehicle : vehicles) {
+            vehicle.vehicleInstance.accelerationSmooth = (vehicle.vehicleInstance.accelerationSmooth + vehicle.vehicleInstance.accelerationValue * (tpf * 10f)) / (1 + tpf * 10f);
+            //engineAudio.setVelocity(new Vector3f(0, 0, 0));
+            //engineAudio.setLocalTranslation(x, 0, z);
+            vehicle.engineAudio.updateGeometricState();
+            vehicle.engineAudio.setPitch(Math.max(0.5f, Math.min(vehicle.vehicleInstance.accelerationSmooth / vehicle.vehicleInstance.accelerationForce * 2f, 2.0f)));
+            boolean engineRunning = (vehicle.vehicleInstance.accelerationValue > 0.01f || vehicle.vehicleInstance.accelerationValue < -0.01f);
+            if ((vehicle.engineAudio.getStatus() == Status.Playing) && !engineRunning) {
+                vehicle.engineAudio.stop();
+            }
+            if ((vehicle.engineAudio.getStatus() != Status.Playing) && engineRunning) {
+                vehicle.engineAudio.play();
+            }
+
+            vehicle.wheelsAudio.updateGeometricState();
+            float wheelRot = Math.abs(vehicle.vehicleControl.getWheel(0).getDeltaRotation() + vehicle.vehicleControl.getWheel(1).getDeltaRotation()) / tpf / 40f;
+            // TODO: pitch
+            //System.out.println("wheel rot: " + wheelRot);
+            //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
+            vehicle.wheelsAudio.setVolume(Math.max(0.0001f, Math.min(wheelRot, 1.0f)) - 0.0001f);
+
+            vehicle.wheelSlipAudio.updateGeometricState();
+            float slipAll = 0f;
+            for (int i = 0; i < vehicle.vehicleControl.getNumWheels(); i++) {
+                slipAll += vehicle.vehicleControl.getWheel(i).getSkidInfo();
+            }
+            float slip = 1f - (slipAll) / vehicle.vehicleControl.getNumWheels();
+            float wheelSlip = (slip * slip * slip * slip * slip * slip * slip) / tpf / 40f;
+            // TODO: pitch
+            //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
+            vehicle.wheelSlipAudio.setVolume(Math.max(0.0001f, Math.min(wheelSlip, 1.0f)) - 0.0001f);
         }
-        float slip = 1f - (slipAll) / vehicle.getNumWheels();
-        float wheelSlip = (slip * slip * slip * slip * slip * slip * slip) / tpf / 40f;
-        // TODO: pitch
-        //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
-        wheelSlipAudio.setVolume(Math.max(0.0001f, Math.min(wheelSlip, 1.0f)) - 0.0001f);
+        
+        listener.setLocation(cam.getLocation());
+        listener.setRotation(cam.getRotation());
     }
 
     public void onAction(String binding, boolean value, float tpf) {
-        if (carType == FOOT) {
-            float walkSpeed = 3f;
+        if (playerVehicleNode == null) {
+            float walkSpeed = 6f;
             if (binding.equals("Lefts")) {
                 if (value) {
                     walkDir.x -= walkSpeed;
@@ -338,68 +412,68 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             playerPersonControl.setViewDirection(walkDir);
         } else {
             float steerMax = 0.5f;
-            if (carType == TRUCK) {
+            if (playerVehicleNode.vehicleInstance.carType == VehicleInstance.TRUCK) {
                 steerMax = 0.7f;
             }
             if (binding.equals("Lefts")) {
                 if (value) {
-                    steeringValue += steerMax;
+                    playerVehicleNode.vehicleInstance.steeringValue += steerMax;
                 } else {
-                    steeringValue += -steerMax;
+                    playerVehicleNode.vehicleInstance.steeringValue += -steerMax;
                 }
-                vehicle.steer(steeringValue);
+                playerVehicleNode.vehicleControl.steer(playerVehicleNode.vehicleInstance.steeringValue);
             } else if (binding.equals("Rights")) {
                 if (value) {
-                    steeringValue += -steerMax;
+                    playerVehicleNode.vehicleInstance.steeringValue += -steerMax;
                 } else {
-                    steeringValue += steerMax;
+                    playerVehicleNode.vehicleInstance.steeringValue += steerMax;
                 }
-                vehicle.steer(steeringValue);
+                playerVehicleNode.vehicleControl.steer(playerVehicleNode.vehicleInstance.steeringValue);
             } else if (binding.equals("Ups")) {
                 if (value) {
-                    accelerationValue += accelerationForce;
+                    playerVehicleNode.vehicleInstance.accelerationValue += playerVehicleNode.vehicleInstance.accelerationForce;
                 } else {
-                    accelerationValue -= accelerationForce;
+                    playerVehicleNode.vehicleInstance.accelerationValue -= playerVehicleNode.vehicleInstance.accelerationForce;
                 }
-                vehicle.accelerate(2, accelerationValue);
-                vehicle.accelerate(3, accelerationValue);
-                if (carType == TRUCK) {
-                    vehicle.accelerate(4, accelerationValue);
-                    vehicle.accelerate(5, accelerationValue);
+                playerVehicleNode.vehicleControl.accelerate(2, playerVehicleNode.vehicleInstance.accelerationValue);
+                playerVehicleNode.vehicleControl.accelerate(3, playerVehicleNode.vehicleInstance.accelerationValue);
+                if (playerVehicleNode.vehicleInstance.carType == VehicleInstance.TRUCK) {
+                    playerVehicleNode.vehicleControl.accelerate(4, playerVehicleNode.vehicleInstance.accelerationValue);
+                    playerVehicleNode.vehicleControl.accelerate(5, playerVehicleNode.vehicleInstance.accelerationValue);
                 }
             } else if (binding.equals("Downs")) {
                 float b;
                 if (value) {
-                    b = brakeForce;
+                    b = playerVehicleNode.vehicleInstance.brakeForce;
                 } else {
                     b = 0f;
                 }
-                vehicle.brake(0, b);
-                vehicle.brake(1, b);
+                playerVehicleNode.vehicleControl.brake(0, b);
+                playerVehicleNode.vehicleControl.brake(1, b);
             } else if (binding.equals("Revs")) {
                 if (value) {
-                    accelerationValue += accelerationForce;
+                    playerVehicleNode.vehicleInstance.accelerationValue += playerVehicleNode.vehicleInstance.accelerationForce;
                 } else {
-                    accelerationValue -= accelerationForce;
+                    playerVehicleNode.vehicleInstance.accelerationValue -= playerVehicleNode.vehicleInstance.accelerationForce;
                 }
-                vehicle.accelerate(2, -accelerationValue);
-                vehicle.accelerate(3, -accelerationValue);
-                if (carType == TRUCK) {
-                    vehicle.accelerate(4, -accelerationValue);
-                    vehicle.accelerate(5, -accelerationValue);
+                playerVehicleNode.vehicleControl.accelerate(2, -playerVehicleNode.vehicleInstance.accelerationValue);
+                playerVehicleNode.vehicleControl.accelerate(3, -playerVehicleNode.vehicleInstance.accelerationValue);
+                if (playerVehicleNode.vehicleInstance.carType == VehicleInstance.TRUCK) {
+                    playerVehicleNode.vehicleControl.accelerate(4, -playerVehicleNode.vehicleInstance.accelerationValue);
+                    playerVehicleNode.vehicleControl.accelerate(5, -playerVehicleNode.vehicleInstance.accelerationValue);
                 }
             } else if (binding.equals("Space")) {
                 if (value) {
-                    vehicle.applyImpulse(jumpForce, Vector3f.ZERO);
+                    playerVehicleNode.vehicleControl.applyImpulse(jumpForce, Vector3f.ZERO);
                 }
             } else if (binding.equals("Reset")) {
                 if (value) {
                     System.out.println("Reset");
-                    vehicle.setPhysicsLocation(Vector3f.ZERO);
-                    vehicle.setPhysicsRotation(new Matrix3f());
-                    vehicle.setLinearVelocity(Vector3f.ZERO);
-                    vehicle.setAngularVelocity(Vector3f.ZERO);
-                    vehicle.resetSuspension();
+                    playerVehicleNode.vehicleControl.setPhysicsLocation(Vector3f.ZERO);
+                    playerVehicleNode.vehicleControl.setPhysicsRotation(new Matrix3f());
+                    playerVehicleNode.vehicleControl.setLinearVelocity(Vector3f.ZERO);
+                    playerVehicleNode.vehicleControl.setAngularVelocity(Vector3f.ZERO);
+                    playerVehicleNode.vehicleControl.resetSuspension();
                 } else {
                 }
             }
@@ -417,7 +491,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         person.addControl(personControl);
         /**/personControl.setJumpForce(new Vector3f(0,5f,0));
         personControl.setGravity(new Vector3f(0,1f,0));
-        personControl.warp(new Vector3f(10f + (float)Math.random() * 10f, 30f, 12f + (float)Math.random() * 10f));/**/
+        personControl.warp(new Vector3f(10f + (float)Math.random() * 20f, 30f, 12f + (float)Math.random() * 20f));/**/
         //personControl.setPhysicsLocation(new Vector3f(10f, 30f, 12f));
         getPhysicsSpace().add(personControl);
         getPhysicsSpace().addAll(person);
@@ -429,7 +503,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         return person;
     }
 
-    private void addPlayerPerson()
+    private void addPlayer()
     {
         playerNode = addPerson();
         playerPersonControl = playerNode.getControl(BetterCharacterControl.class);
