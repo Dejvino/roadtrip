@@ -70,7 +70,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         addMap();
         
         DirectionalLight dl = new DirectionalLight();
-        dl.setColor(ColorRGBA.White);
+        dl.setColor(ColorRGBA.LightGray);
         dl.setDirection(new Vector3f(1, -1, 1));
         rootNode.addLight(dl);
         
@@ -95,13 +95,15 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     }
 
     private void setupKeys() {
-        inputManager.addMapping("Lefts", new KeyTrigger(KeyInput.KEY_H));
-        inputManager.addMapping("Rights", new KeyTrigger(KeyInput.KEY_K));
-        inputManager.addMapping("Ups", new KeyTrigger(KeyInput.KEY_U));
-        inputManager.addMapping("Downs", new KeyTrigger(KeyInput.KEY_J));
-        inputManager.addMapping("Revs", new KeyTrigger(KeyInput.KEY_M));
+        inputManager.clearMappings();
+        inputManager.addMapping("Lefts", new KeyTrigger(KeyInput.KEY_A));
+        inputManager.addMapping("Rights", new KeyTrigger(KeyInput.KEY_D));
+        inputManager.addMapping("Ups", new KeyTrigger(KeyInput.KEY_W));
+        inputManager.addMapping("Downs", new KeyTrigger(KeyInput.KEY_S));
+        inputManager.addMapping("Revs", new KeyTrigger(KeyInput.KEY_X));
         inputManager.addMapping("Space", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Reset", new KeyTrigger(KeyInput.KEY_RETURN));
+        inputManager.addMapping("Esc", new KeyTrigger(KeyInput.KEY_ESCAPE));
         inputManager.addListener(this, "Lefts");
         inputManager.addListener(this, "Rights");
         inputManager.addListener(this, "Ups");
@@ -109,6 +111,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addListener(this, "Revs");
         inputManager.addListener(this, "Space");
         inputManager.addListener(this, "Reset");
+        inputManager.addListener(this, "Esc");
     }
 
     private void addCar()
@@ -276,7 +279,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         vehicle.addControl(vehicleControl);
         getPhysicsSpace().add(vehicleControl);
-        vehicleControl.setPhysicsLocation(new Vector3f(10f + (float)Math.random() * 20f, 30f, 12f + (float)Math.random() * 20f));
+        vehicleControl.setPhysicsLocation(new Vector3f(10f + (float)Math.random() * 40f, 28f, 12f + (float)Math.random() * 40f));
         
         vehicles.add(vehicle);
         rootNode.attachChild(vehicle);
@@ -457,6 +460,9 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                 } else {
                 }
             }
+        }
+        if (binding.equals("Esc")) {
+            stop();
         }
     }
 

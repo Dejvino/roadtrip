@@ -6,7 +6,7 @@ A game about a journey involving vehicles and obstacles.
 ## Status
 ### DONE
 * Physics-based vehicles
-* Driving controls (UHJKM)
+* Driving controls (WASDX)
 * Enter / Exit a car (Enter)
 * Camera following the player
 * Hilly ground
