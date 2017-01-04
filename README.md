@@ -5,8 +5,9 @@ A game about a journey involving vehicles and obstacles.
 
 ## Status
 ### DONE
-* Physics-based vehicle
+* Physics-based vehicles
 * Driving controls (UHJKM)
+* Enter / Exit a car (Enter)
 * Camera following the player
 * Hilly ground
 * Collidable objects - static and dynamic
@@ -15,18 +16,21 @@ A game about a journey involving vehicles and obstacles.
 * Sounds - car engine, wheels & slips
 
 ### TODO
-* Enter / Exit a car
-* Sounds - crashes
 * Target location (winning condition)
 * Main menu
+* Sounds - crashes
 * Health indicator
 * NPC AI
 * Enemy NPCs - punching, shooting
+* Interacting with the environment
 * Car models
 * Scenery models
-* Bigger map
-* Map transitions
+* Bigger map / Map generator
 * Roadblocks
+* Map segments transitions
 * FPS camera
 * Orbit camera
+* Stealth
+* Clothing
+* Car customization
 
