@@ -11,6 +11,7 @@ import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.control.VehicleControl;
+import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -20,9 +21,11 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.CameraNode;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.terrain.geomipmap.TerrainGrid;
@@ -59,6 +62,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     public static boolean DEBUG = false;//true;
     
     private BulletAppState bulletAppState;
+    
+    private ChaseCamera chaseCam;
    
     // START Terrain
     private Material mat_terrain;
@@ -122,6 +127,9 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         addPerson();
         
         addPlayer();
+        
+        chaseCam = new ChaseCamera(cam, playerNode, inputManager);
+        chaseCam.setSmoothMotion(true);
     }
 
     private void setupKeys() {
@@ -163,15 +171,25 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         float xOff = 1.6f;
         float zOff = 2f;
 
-        Geometry carBody = new Geometry("car body", new Box(new Vector3f(0.0f, 1f, 0.0f), 1.4f, 0.5f, 3.6f));
         Material matBody = new Material(getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
         matBody.setFloat("Shininess", 32f);
         matBody.setBoolean("UseMaterialColors", true);
         matBody.setColor("Ambient",  ColorRGBA.Black);
         matBody.setColor("Diffuse",  ColorRGBA.Red);
         matBody.setColor("Specular", ColorRGBA.White);
-        carBody.setMaterial(matBody);
-        vehicleModel.attachChild(carBody);
+        
+        
+        if (vehicleInstance.carType == VehicleInstance.WEAK) {
+            Spatial carBody = getAssetManager().loadModel("Models/rivercrossing.j3o");
+            carBody.setLocalScale(1.1f, 0.8f, 0.8f);
+            carBody.setLocalTranslation(0f, -1f, 0f);
+            carBody.rotate(0f, 3.1415f, 0f);
+            vehicleModel.attachChild(carBody);
+        } else {
+            Geometry carBody = new Geometry("car body", new Box(new Vector3f(0.0f, 1f, 0.0f), 1.4f, 0.5f, 3.6f));
+            carBody.setMaterial(matBody);
+            vehicleModel.attachChild(carBody);
+        }
 
         //create a compound shape and attach the BoxCollisionShape for the car body at 0,1,0
         //this shifts the effective center of mass of the BoxCollisionShape to 0,-1,0
@@ -462,8 +480,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     public void simpleUpdate(float tpf) {
         Vector3f playerLocation = playerNode.getWorldTranslation();
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
-        cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
-        cam.lookAt(playerLocation, Vector3f.UNIT_Y);
+        /*cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
+        cam.lookAt(playerLocation, Vector3f.UNIT_Y);*/
         
         for (VehicleNode vehicle : vehicles) {
             vehicle.vehicleInstance.accelerationSmooth = (vehicle.vehicleInstance.accelerationSmooth + vehicle.vehicleInstance.accelerationValue * (tpf * 10f)) / (1 + tpf * 10f);
@@ -546,7 +564,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                         if (dist < 5f) {
                             playerVehicleNode = vehicle;
                             playerNode.removeFromParent();
-                            playerNode.setLocalTranslation(0f, 0f, 0f);
+                            playerNode.setLocalTranslation(0f, 0f, -1f);
                             playerNode.setLocalRotation(Quaternion.DIRECTION_Z);
                             playerNode.removeControl(playerPersonControl);
                             playerVehicleNode.attachChild(playerNode);

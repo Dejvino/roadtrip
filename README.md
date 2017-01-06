@@ -6,6 +6,7 @@ A game about a journey involving vehicles and obstacles.
 ## Status
 ### DONE
 * Physics-based vehicles
+* One car model
 * Driving controls (WASDX)
 * Enter / Exit a car (Enter)
 * Camera following the player
