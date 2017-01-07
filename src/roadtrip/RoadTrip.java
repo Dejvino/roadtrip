@@ -89,6 +89,12 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     private VehicleNode playerVehicleNode;
     // END Player
     
+    private Vector3f journeyTarget = new Vector3f(50, 0f, 50f);
+    private Node targetNode;
+    
+    float inputTurning;
+    float inputAccel;
+    
     private PhysicsSpace getPhysicsSpace(){
         return bulletAppState.getPhysicsSpace();
     }
@@ -128,7 +134,10 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         addPlayer();
         
+        addTarget();
+        
         chaseCam = new ChaseCamera(cam, playerNode, inputManager);
+        chaseCam.setDefaultDistance(60f);
         chaseCam.setSmoothMotion(true);
     }
 
@@ -364,6 +373,21 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         playerPersonControl = playerNode.getControl(BetterCharacterControl.class);
     }
     
+    private void addTarget()
+    {
+        Material matTarget = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        matTarget.setColor("Color",  ColorRGBA.Red);
+        
+        Geometry targetGeom = new Geometry("target", new Box(new Vector3f(0.0f, 0f, 0.0f), 1.0f, 1000.0f, 1.0f));
+        targetGeom.setMaterial(matTarget);
+        
+        targetNode = new Node("target");
+        targetNode.attachChild(targetGeom);
+        rootNode.attachChild(targetNode);
+        
+        targetNode.setLocalTranslation(journeyTarget);
+    }
+    
     private void addMap() {
         // TERRAIN TEXTURE material
         this.mat_terrain = new Material(this.assetManager, "Common/MatDefs/Terrain/HeightBasedTerrain.j3md");
@@ -523,35 +547,52 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
+        
+        if (playerVehicleNode == null) {
+            playerPersonControl.setViewDirection(new Quaternion().fromAngleAxis(inputTurning * tpf, Vector3f.UNIT_Y).mult(playerPersonControl.getViewDirection()));
+            playerPersonControl.setWalkDirection(new Vector3f(playerPersonControl.getViewDirection()).mult(inputAccel * tpf * 1000f));
+        }
+        
+        Vector3f playerPos2d = new Vector3f(playerNode.getWorldTranslation());
+        playerPos2d.y = 0;
+        Vector3f targetPos2d = new Vector3f(targetNode.getWorldTranslation());
+        targetPos2d.y = 0;
+        float targetDistance = playerPos2d.distance(targetPos2d);
+        if (targetDistance < 5f) {
+            double angle = Math.random() * 2d - 1d;
+            journeyTarget = journeyTarget.add(new Quaternion().fromAngleAxis((float) angle, Vector3f.UNIT_Y).mult(Vector3f.UNIT_Z).mult(100f));
+            targetNode.setLocalTranslation(journeyTarget);
+        }
     }
 
     @Override
     public void onAction(String binding, boolean value, float tpf) {
         if (playerVehicleNode == null) {
-            float walkSpeed = 6f;
+            float walkSpeed = 1f;
+            float turnSpeed = 1f;
             if (binding.equals("Lefts")) {
                 if (value) {
-                    walkDir.x -= walkSpeed;
+                    inputTurning += turnSpeed;
                 } else {
-                    walkDir.x += walkSpeed;
+                    inputTurning -= turnSpeed;
                 }
             } else if (binding.equals("Rights")) {
                 if (value) {
-                    walkDir.x += walkSpeed;
+                    inputTurning -= turnSpeed;
                 } else {
-                    walkDir.x -= walkSpeed;
+                    inputTurning += turnSpeed;
                 }
             } else if (binding.equals("Ups")) {
                 if (value) {
-                    walkDir.z -= walkSpeed;
+                    inputAccel += walkSpeed;
                 } else {
-                    walkDir.z += walkSpeed;
+                    inputAccel -= walkSpeed;
                 }
             } else if (binding.equals("Downs")) {
                 if (value) {
-                    walkDir.z += walkSpeed;
+                    inputAccel -= walkSpeed;
                 } else {
-                    walkDir.z -= walkSpeed;
+                    inputAccel += walkSpeed;
                 }
             } else if (binding.equals("Reset")) {
                 if (value) {
@@ -577,8 +618,6 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                     }
                 }
             }
-            playerPersonControl.setWalkDirection(walkDir);
-            playerPersonControl.setViewDirection(walkDir);
         } else {
             VehicleInstance playerVehicle = playerVehicleNode.vehicleInstance;
             VehicleControl playerVehicleControl = playerVehicleNode.vehicleControl;

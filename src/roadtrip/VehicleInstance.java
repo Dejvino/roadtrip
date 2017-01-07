@@ -34,7 +34,7 @@ public class VehicleInstance
     {
         WeakVehicle()
         {
-            super(WEAK, 200.0f, 100.0f);
+            super(WEAK, 400.0f, 100.0f);
         }
     }
     
