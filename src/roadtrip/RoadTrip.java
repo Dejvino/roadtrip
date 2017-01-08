@@ -26,6 +26,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.CameraControl.ControlDirection;
+import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.terrain.geomipmap.TerrainGrid;
@@ -91,6 +92,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     
     private Vector3f journeyTarget = new Vector3f(50, 0f, 50f);
     private Node targetNode;
+    private Node compassNode;
     
     float inputTurning;
     float inputAccel;
@@ -135,6 +137,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         addPlayer();
         
         addTarget();
+        addCompass();
         
         chaseCam = new ChaseCamera(cam, playerNode, inputManager);
         chaseCam.setDefaultDistance(60f);
@@ -388,6 +391,30 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         targetNode.setLocalTranslation(journeyTarget);
     }
     
+    private void addCompass()
+    {
+        Material matRed = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        matRed.setColor("Color",  ColorRGBA.Red);
+        Material matBlack = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        matBlack.setColor("Color",  ColorRGBA.Black);
+        
+        Geometry compassGeomN = new Geometry("compass-N", new Arrow(new Vector3f(0.0f, 0.0f, 1.2f)));
+        compassGeomN.setMaterial(matRed);
+        Geometry compassGeomS = new Geometry("compass-S", new Arrow(new Vector3f(0.0f, 0.0f, -1.0f)));
+        compassGeomS.setMaterial(matBlack);
+        Geometry compassGeomW = new Geometry("compass-W", new Arrow(new Vector3f(-1.0f, 0.0f, 0.0f)));
+        compassGeomW.setMaterial(matBlack);
+        Geometry compassGeomE = new Geometry("compass-E", new Arrow(new Vector3f(1.0f, 0.0f, 0.0f)));
+        compassGeomE.setMaterial(matBlack);
+        
+        compassNode = new Node("compass");
+        compassNode.attachChild(compassGeomN);
+        compassNode.attachChild(compassGeomS);
+        compassNode.attachChild(compassGeomW);
+        compassNode.attachChild(compassGeomE);
+        rootNode.attachChild(compassNode);
+    }
+    
     private void addMap() {
         // TERRAIN TEXTURE material
         this.mat_terrain = new Material(this.assetManager, "Common/MatDefs/Terrain/HeightBasedTerrain.j3md");
@@ -557,12 +584,16 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         playerPos2d.y = 0;
         Vector3f targetPos2d = new Vector3f(targetNode.getWorldTranslation());
         targetPos2d.y = 0;
-        float targetDistance = playerPos2d.distance(targetPos2d);
+        Vector3f targetDir = targetPos2d.subtract(playerPos2d);
+        float targetDistance = targetDir.length();
         if (targetDistance < 5f) {
             double angle = Math.random() * 2d - 1d;
             journeyTarget = journeyTarget.add(new Quaternion().fromAngleAxis((float) angle, Vector3f.UNIT_Y).mult(Vector3f.UNIT_Z).mult(100f));
             targetNode.setLocalTranslation(journeyTarget);
         }
+        
+        compassNode.setLocalTranslation(new Vector3f(playerNode.getWorldTranslation()).addLocal(0f, 5f, 0f));
+        compassNode.setLocalRotation(new Quaternion().fromAngles(0f, (float)Math.atan2(targetDir.x, targetDir.z)/*targetDir.angleBetween(Vector3f.UNIT_Z)*/, 0f));
     }
 
     @Override
