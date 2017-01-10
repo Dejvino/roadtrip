@@ -11,6 +11,9 @@ import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.control.VehicleControl;
+import com.jme3.font.BitmapFont;
+import com.jme3.font.BitmapText;
+import com.jme3.font.Rectangle;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -21,6 +24,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.CameraNode;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -29,6 +33,7 @@ import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
+import com.jme3.scene.shape.Quad;
 import com.jme3.terrain.geomipmap.TerrainGrid;
 import com.jme3.terrain.geomipmap.TerrainGridListener;
 import com.jme3.terrain.geomipmap.TerrainGridLodControl;
@@ -391,6 +396,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         targetNode.setLocalTranslation(journeyTarget);
     }
     
+    BitmapText txt;
+    
     private void addCompass()
     {
         Material matRed = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -412,6 +419,17 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         compassNode.attachChild(compassGeomS);
         compassNode.attachChild(compassGeomW);
         compassNode.attachChild(compassGeomE);
+        
+        BitmapFont fnt = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        txt = new BitmapText(fnt, false);
+        txt.setBox(new Rectangle(-5, 4, 10, 4));
+        txt.setAlignment(BitmapFont.Align.Center);
+        txt.setQueueBucket(RenderQueue.Bucket.Transparent);
+        txt.setSize( 1.2f );
+        txt.setText("Target");
+        txt.setLocalRotation(new Quaternion().fromAngles(0, 3.1415f, 0));
+        compassNode.attachChild(txt);
+        
         rootNode.attachChild(compassNode);
     }
     
@@ -591,6 +609,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             journeyTarget = journeyTarget.add(new Quaternion().fromAngleAxis((float) angle, Vector3f.UNIT_Y).mult(Vector3f.UNIT_Z).mult(100f));
             targetNode.setLocalTranslation(journeyTarget);
         }
+        
+        txt.setText(((int)targetDistance) + " m");
         
         compassNode.setLocalTranslation(new Vector3f(playerNode.getWorldTranslation()).addLocal(0f, 5f, 0f));
         compassNode.setLocalRotation(new Quaternion().fromAngles(0f, (float)Math.atan2(targetDir.x, targetDir.z)/*targetDir.angleBetween(Vector3f.UNIT_Z)*/, 0f));
