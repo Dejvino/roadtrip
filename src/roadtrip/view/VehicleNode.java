@@ -1,11 +1,12 @@
 /*
  */
-package roadtrip;
+package roadtrip.view;
 
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.control.VehicleControl;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import roadtrip.model.VehicleInstance;
 
 /**
  *
