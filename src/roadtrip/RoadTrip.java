@@ -86,14 +86,16 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     // END Terrain
     
     private List<VehicleNode> vehicles = new LinkedList<>();
-    
-    // START Player
-    private Node playerNode;
-    private BetterCharacterControl playerPersonControl;
-    private Vector3f jumpForce = new Vector3f(0, 3000, 0);
-    private Vector3f walkDir = new Vector3f();
-    private VehicleNode playerVehicleNode;
-    // END Player
+
+    private static class Player
+    {
+        Node node;
+        BetterCharacterControl characterControl;
+        Vector3f jumpForce = new Vector3f(0, 3000, 0);
+        Vector3f walkDir = new Vector3f();
+        VehicleNode vehicleNode;
+    }
+    private Player player = new Player();
     
     private Vector3f journeyTarget = new Vector3f(50, 0f, 50f);
     private Node targetNode;
@@ -144,7 +146,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         addTarget();
         addCompass();
         
-        chaseCam = new ChaseCamera(cam, playerNode, inputManager);
+        chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);
         chaseCam.setSmoothMotion(true);
     }
@@ -377,8 +379,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
 
     private void addPlayer()
     {
-        playerNode = addPerson();
-        playerPersonControl = playerNode.getControl(BetterCharacterControl.class);
+        player.node = addPerson();
+        player.characterControl = player.node.getControl(BetterCharacterControl.class);
     }
     
     private void addTarget()
@@ -547,7 +549,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     
     @Override
     public void simpleUpdate(float tpf) {
-        Vector3f playerLocation = playerNode.getWorldTranslation();
+        Vector3f playerLocation = player.node.getWorldTranslation();
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
         /*cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
         cam.lookAt(playerLocation, Vector3f.UNIT_Y);*/
@@ -593,12 +595,12 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
         
-        if (playerVehicleNode == null) {
-            playerPersonControl.setViewDirection(new Quaternion().fromAngleAxis(inputTurning * tpf, Vector3f.UNIT_Y).mult(playerPersonControl.getViewDirection()));
-            playerPersonControl.setWalkDirection(new Vector3f(playerPersonControl.getViewDirection()).mult(inputAccel * tpf * 1000f));
+        if (player.vehicleNode == null) {
+            player.characterControl.setViewDirection(new Quaternion().fromAngleAxis(inputTurning * tpf, Vector3f.UNIT_Y).mult(player.characterControl.getViewDirection()));
+            player.characterControl.setWalkDirection(new Vector3f(player.characterControl.getViewDirection()).mult(inputAccel * tpf * 1000f));
         }
         
-        Vector3f playerPos2d = new Vector3f(playerNode.getWorldTranslation());
+        Vector3f playerPos2d = new Vector3f(player.node.getWorldTranslation());
         playerPos2d.y = 0;
         Vector3f targetPos2d = new Vector3f(targetNode.getWorldTranslation());
         targetPos2d.y = 0;
@@ -612,13 +614,13 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         txt.setText(((int)targetDistance) + " m");
         
-        compassNode.setLocalTranslation(new Vector3f(playerNode.getWorldTranslation()).addLocal(0f, 5f, 0f));
+        compassNode.setLocalTranslation(new Vector3f(player.node.getWorldTranslation()).addLocal(0f, 5f, 0f));
         compassNode.setLocalRotation(new Quaternion().fromAngles(0f, (float)Math.atan2(targetDir.x, targetDir.z)/*targetDir.angleBetween(Vector3f.UNIT_Z)*/, 0f));
     }
 
     @Override
     public void onAction(String binding, boolean value, float tpf) {
-        if (playerVehicleNode == null) {
+        if (player.vehicleNode == null) {
             float walkSpeed = 1f;
             float turnSpeed = 1f;
             if (binding.equals("Lefts")) {
@@ -648,30 +650,30 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             } else if (binding.equals("Reset")) {
                 if (value) {
                     System.out.println("Reset - to car");
-                    Vector3f playerPos = playerNode.getWorldTranslation();
+                    Vector3f playerPos = player.node.getWorldTranslation();
                     for (VehicleNode vehicle : vehicles) {
                         Vector3f vehiclePos = vehicle.getWorldTranslation();
                         float dist = playerPos.distance(vehiclePos);
                         System.out.println(" .. dist: " + dist);
                         if (dist < 5f) {
-                            playerVehicleNode = vehicle;
-                            playerNode.removeFromParent();
-                            playerNode.setLocalTranslation(0f, 0f, -1f);
-                            playerNode.setLocalRotation(Quaternion.DIRECTION_Z);
-                            playerNode.removeControl(playerPersonControl);
-                            playerVehicleNode.attachChild(playerNode);
-                            VehicleInstance playerVehicle = playerVehicleNode.vehicleInstance;
+                            player.vehicleNode = vehicle;
+                            player.node.removeFromParent();
+                            player.node.setLocalTranslation(0f, 0f, -1f);
+                            player.node.setLocalRotation(Quaternion.DIRECTION_Z);
+                            player.node.removeControl(player.characterControl);
+                            player.vehicleNode.attachChild(player.node);
+                            VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
                             playerVehicle.accelerationValue = 0;
                             playerVehicle.steeringValue = 0;
-                            walkDir = new Vector3f();
+                            player.walkDir = new Vector3f();
                             break;
                         }
                     }
                 }
             }
         } else {
-            VehicleInstance playerVehicle = playerVehicleNode.vehicleInstance;
-            VehicleControl playerVehicleControl = playerVehicleNode.vehicleControl;
+            VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
+            VehicleControl playerVehicleControl = player.vehicleNode.vehicleControl;
             int playerCarType = playerVehicle.carType;
             float steerMax = 0.5f;
             if (playerCarType == VehicleInstance.TRUCK) {
@@ -726,17 +728,17 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                 }
             } else if (binding.equals("Space")) {
                 if (value) {
-                    playerVehicleControl.applyImpulse(jumpForce, Vector3f.ZERO);
+                    playerVehicleControl.applyImpulse(player.jumpForce, Vector3f.ZERO);
                 }
             } else if (binding.equals("Reset")) {
                 if (value) {
                     System.out.println("Reset - from car");
-                    playerNode.removeFromParent();
-                    playerNode.addControl(playerPersonControl);
-                    playerPersonControl.warp(playerVehicleNode.getLocalTranslation());
-                    rootNode.attachChild(playerNode);
-                    playerVehicleNode = null;
-                    walkDir = new Vector3f();
+                    player.node.removeFromParent();
+                    player.node.addControl(player.characterControl);
+                    player.characterControl.warp(player.vehicleNode.getLocalTranslation());
+                    rootNode.attachChild(player.node);
+                    player.vehicleNode = null;
+                    player.walkDir = new Vector3f();
                     /*playerVehicleControl.setPhysicsLocation(Vector3f.ZERO);
                     playerVehicleControl.setPhysicsRotation(new Matrix3f());
                     playerVehicleControl.setLinearVelocity(Vector3f.ZERO);
