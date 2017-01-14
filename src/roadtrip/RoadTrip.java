@@ -36,6 +36,7 @@ import com.jme3.terrain.geomipmap.TerrainQuad;
 import roadtrip.model.VehicleInstance;
 import roadtrip.view.GameWorldView;
 import roadtrip.view.VehicleNode;
+import roadtrip.view.model.GameWorldState;
 import roadtrip.view.model.Player;
 
 /**
@@ -53,6 +54,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
 
     private BulletAppState bulletAppState;
 
+    private GameWorldState gameWorldState;
     private GameWorldView gameWorldView;
 
     private ChaseCamera chaseCam;
@@ -87,8 +89,9 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         dl.setColor(ColorRGBA.LightGray);
         dl.setDirection(new Vector3f(1, -1, 1));
         rootNode.addLight(dl);
-        
-        gameWorldView = GameWorldView.create(assetManager, cam, rootNode);
+
+        gameWorldState = new GameWorldState();
+        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode);
         gameWorldView.terrain.terrainGrid.addListener(new TerrainGridListener() {
 
             @Override
@@ -114,11 +117,11 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
 
         });
 
-        /*addCar();
         addCar();
         addCar();
         addCar();
-        addCar();*/
+        addCar();
+        addCar();
         addPerson();
         addPerson();
         addPerson();
@@ -157,10 +160,10 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addListener(this, "Esc");
     }
 
-    /*private void addCar()
+    private void addCar()
     {
         Node vehicleModel = new Node("VehicleModel");
-        VehicleInstance vehicleInstance = VehicleInstance.createVehicle(vehicles.size() % VehicleInstance.getVehicleTypesCount());
+        VehicleInstance vehicleInstance = VehicleInstance.createVehicle(gameWorldState.vehicles.size() % VehicleInstance.getVehicleTypesCount());
         vehicleInstance.brakeForce = vehicleInstance.accelerationForce;
         
         Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -335,9 +338,9 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         getPhysicsSpace().add(vehicleControl);
         vehicleControl.setPhysicsLocation(new Vector3f(10f + (float)Math.random() * 40f, 28f, 12f + (float)Math.random() * 40f));
         
-        vehicles.add(vehicle);
+        gameWorldState.vehicles.add(vehicle);
         rootNode.attachChild(vehicle);
-    }*/
+    }
 
     private Node addPerson() {
         Spatial personModel = assetManager.loadModel("Models/person.j3o");
@@ -427,10 +430,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     public void simpleUpdate(float tpf) {
         Vector3f playerLocation = player.node.getWorldTranslation();
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
-        /*cam.setLocation(new Vector3f(cam.getLocation()).interpolate(newLocation, Math.min(tpf, 1f)));
-        cam.lookAt(playerLocation, Vector3f.UNIT_Y);*/
-        
-        /*for (VehicleNode vehicle : gameWorldState.vehicles) {
+
+        for (VehicleNode vehicle : gameWorldState.vehicles) {
             vehicle.vehicleInstance.accelerationSmooth = (vehicle.vehicleInstance.accelerationSmooth + vehicle.vehicleInstance.accelerationValue * (tpf * 10f)) / (1 + tpf * 10f);
             vehicle.engineAudio.setVelocity(new Vector3f(0, 0, 0));
             vehicle.engineAudio.updateGeometricState();
@@ -466,7 +467,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             // TODO: pitch
             //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
             vehicle.wheelSlipAudio.setVolume(Math.max(0.0001f, Math.min(wheelSlip, 1.0f)) - 0.0001f);
-        }*/
+        }
         
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
@@ -527,7 +528,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                 if (value) {
                     System.out.println("Reset - to car");
                     Vector3f playerPos = player.node.getWorldTranslation();
-                    /*for (VehicleNode vehicle : vehicles) {
+                    for (VehicleNode vehicle : gameWorldState.vehicles) {
                         Vector3f vehiclePos = vehicle.getWorldTranslation();
                         float dist = playerPos.distance(vehiclePos);
                         System.out.println(" .. dist: " + dist);
@@ -544,11 +545,11 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                             player.walkDir = new Vector3f();
                             break;
                         }
-                    }*/
+                    }
                 }
             }
         } else {
-            /*VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
+            VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
             VehicleControl playerVehicleControl = player.vehicleNode.vehicleControl;
             int playerCarType = playerVehicle.carType;
             float steerMax = 0.5f;
@@ -617,7 +618,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                     player.walkDir = new Vector3f();
                 } else {
                 }
-            }*/
+            }
         }
         if (binding.equals("Esc")) {
             stop();

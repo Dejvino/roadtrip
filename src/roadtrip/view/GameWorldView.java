@@ -27,7 +27,7 @@ import roadtrip.view.model.GameWorldState;
  */
 public class GameWorldView {
 
-    private GameWorldState state = new GameWorldState();
+    private GameWorldState state;
 
     private AssetManager assetManager;
     private Camera camera;
@@ -35,11 +35,15 @@ public class GameWorldView {
 
     public TerrainView terrain = new TerrainView(new TerrainDataProvider());
 
-    public static GameWorldView create(AssetManager assetManager, Camera camera, Node rootNode) {
-        GameWorldView gameWorldView = new GameWorldView();
-        gameWorldView.assetManager = assetManager;
-        gameWorldView.camera = camera;
-        gameWorldView.rootNode = rootNode;
+    public GameWorldView(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode) {
+        this.state = gameWorldState;
+        this.assetManager = assetManager;
+        this.camera = camera;
+        this.rootNode = rootNode;
+    }
+
+    public static GameWorldView create(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode) {
+        GameWorldView gameWorldView = new GameWorldView(gameWorldState, assetManager, camera, rootNode);
         gameWorldView.initialize();
         return gameWorldView;
     }

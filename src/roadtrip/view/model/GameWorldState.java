@@ -9,5 +9,5 @@ import java.util.List;
  * Created by dejvino on 14.01.2017.
  */
 public class GameWorldState {
-    private List<VehicleNode> vehicles = new LinkedList<>();
+    public List<VehicleNode> vehicles = new LinkedList<>();
 }

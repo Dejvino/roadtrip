@@ -8,20 +8,20 @@ package roadtrip.model;
  */
 public class VehicleInstance
 {
-    final static int WEAK = 1;
-    final static int TRUCK = 2;
-    final static int SPORT = 3;
+    public static final int WEAK = 1;
+    public static final int TRUCK = 2;
+    public static final int SPORT = 3;
 
-    static int getVehicleTypesCount() {
+    public static int getVehicleTypesCount() {
         return SPORT;
     }
 
-    int carType;
-    float accelerationForce = 200.0f;
-    float brakeForce = 100.0f;
-    float steeringValue = 0;
-    float accelerationValue = 0;
-    float accelerationSmooth = 0;
+    public int carType;
+    public float accelerationForce = 200.0f;
+    public float brakeForce = 100.0f;
+    public float steeringValue = 0;
+    public float accelerationValue = 0;
+    public float accelerationSmooth = 0;
 
     VehicleInstance(int carType, float accelerationForce, float brakeForce)
     {
@@ -54,7 +54,7 @@ public class VehicleInstance
         }
     }
     
-    static VehicleInstance createVehicle(int i) {
+    public static VehicleInstance createVehicle(int i) {
         switch (i + 1) {
             case WEAK: return new WeakVehicle();
             case TRUCK: return new TruckVehicle();

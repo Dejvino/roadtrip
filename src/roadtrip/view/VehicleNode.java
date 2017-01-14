@@ -14,15 +14,15 @@ import roadtrip.model.VehicleInstance;
  */
 public class VehicleNode extends Node
 {
-    VehicleInstance vehicleInstance;
+    public VehicleInstance vehicleInstance;
 
-    VehicleControl vehicleControl;
+    public VehicleControl vehicleControl;
 
-    Spatial vehicleModel;
+    public Spatial vehicleModel;
 
-    AudioNode engineAudio;
-    AudioNode wheelsAudio;
-    AudioNode wheelSlipAudio;
+    public AudioNode engineAudio;
+    public AudioNode wheelsAudio;
+    public AudioNode wheelSlipAudio;
 
     public VehicleNode(String name, VehicleInstance vehicleInstance,
             VehicleControl vehicleControl, Spatial vehicleModel)
