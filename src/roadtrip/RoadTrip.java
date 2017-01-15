@@ -68,6 +68,9 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     float inputTurning;
     float inputAccel;
     
+    BitmapText uiText;
+    Node menuBook;
+    
     private PhysicsSpace getPhysicsSpace(){
         return bulletAppState.getPhysicsSpace();
     }
@@ -134,6 +137,28 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         addTarget();
         addCompass();
+        
+        menuBook = new Node("menu");
+        Geometry book = new Geometry("book", new Box(8, 8, 1));
+        Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", ColorRGBA.Brown);
+        book.setMaterial(mat);
+        book.setLocalTranslation(0f, 0f, -1.1f);
+        menuBook.attachChild(book);
+        BitmapFont fnt = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        uiText = new BitmapText(fnt, false);
+        uiText.setBox(new Rectangle(-5, 4, 12, 12));
+        uiText.setAlignment(BitmapFont.Align.Left);
+        uiText.setQueueBucket(RenderQueue.Bucket.Transparent);
+        uiText.setSize(1.0f);
+        uiText.setText("~~~~~~~~~~~~~~~~~~~~\n   Road Trip   \n~~~~~~~~~~~~~~~~~~~~\n"
+                + " New Game \n"
+                + "$Load Game$\n"
+                + " Settings \n"
+                + " Credits \n"
+                + " Exit\n");
+        menuBook.attachChild(uiText);
+        rootNode.attachChild(menuBook);
         
         chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);
@@ -387,7 +412,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         targetNode.setLocalTranslation(journeyTarget);
     }
     
-    BitmapText txt;
+    BitmapText targetText;
     
     private void addCompass()
     {
@@ -412,14 +437,14 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         compassNode.attachChild(compassGeomE);
         
         BitmapFont fnt = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        txt = new BitmapText(fnt, false);
-        txt.setBox(new Rectangle(-5, 4, 10, 4));
-        txt.setAlignment(BitmapFont.Align.Center);
-        txt.setQueueBucket(RenderQueue.Bucket.Transparent);
-        txt.setSize( 1.2f );
-        txt.setText("Target");
-        txt.setLocalRotation(new Quaternion().fromAngles(0, 3.1415f, 0));
-        compassNode.attachChild(txt);
+        targetText = new BitmapText(fnt, false);
+        targetText.setBox(new Rectangle(-5, 4, 10, 4));
+        targetText.setAlignment(BitmapFont.Align.Center);
+        targetText.setQueueBucket(RenderQueue.Bucket.Transparent);
+        targetText.setSize( 1.2f );
+        targetText.setText("Target");
+        targetText.setLocalRotation(new Quaternion().fromAngles(0, 3.1415f, 0));
+        compassNode.attachChild(targetText);
         
         rootNode.attachChild(compassNode);
     }
@@ -471,6 +496,11 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
+       
+        menuBook.setLocalTranslation(cam.getLocation().add(cam.getRotation().mult(Vector3f.UNIT_Z).mult(30.0f)));
+        Quaternion textRot = new Quaternion();
+        textRot.lookAt(new Vector3f(player.node.getWorldTranslation()).subtractLocal(cam.getLocation()).negate(), Vector3f.UNIT_Y);
+        menuBook.setLocalRotation(textRot);
         
         if (player.vehicleNode == null) {
             player.characterControl.setViewDirection(new Quaternion().fromAngleAxis(inputTurning * tpf, Vector3f.UNIT_Y).mult(player.characterControl.getViewDirection()));
@@ -489,7 +519,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
             targetNode.setLocalTranslation(journeyTarget);
         }
         
-        txt.setText(((int)targetDistance) + " m");
+        targetText.setText(((int)targetDistance) + " m");
         
         compassNode.setLocalTranslation(new Vector3f(player.node.getWorldTranslation()).addLocal(0f, 5f, 0f));
         compassNode.setLocalRotation(new Quaternion().fromAngles(0f, (float)Math.atan2(targetDir.x, targetDir.z)/*targetDir.angleBetween(Vector3f.UNIT_Z)*/, 0f));
