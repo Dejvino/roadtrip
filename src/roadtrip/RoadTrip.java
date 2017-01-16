@@ -1,10 +1,7 @@
 package roadtrip;
 
-import com.jme3.app.SimpleApplication;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource.Status;
-import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.collision.shapes.CompoundCollisionShape;
 import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
@@ -43,7 +40,7 @@ import roadtrip.view.model.Player;
  *
  * @author dejvino
  */
-public class RoadTrip extends SimpleApplication implements ActionListener {
+public class RoadTrip extends GameApplication implements ActionListener {
 
     public static void main(String[] args) {
         RoadTrip app = new RoadTrip();
@@ -51,8 +48,6 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     }
 
     public static boolean DEBUG = false;//true;
-
-    private BulletAppState bulletAppState;
 
     private GameWorldState gameWorldState;
     private GameWorldView gameWorldView;
@@ -67,20 +62,13 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
     
     float inputTurning;
     float inputAccel;
-    
-    private PhysicsSpace getPhysicsSpace(){
-        return bulletAppState.getPhysicsSpace();
-    }
-    
+
     @Override
-    public void simpleInitApp() {
-        bulletAppState = new BulletAppState();
-        stateManager.attach(bulletAppState);
-        if (DEBUG) bulletAppState.getPhysicsSpace().enableDebug(assetManager);
-        PhysicsTestHelper.createPhysicsTestWorld(rootNode, assetManager, bulletAppState.getPhysicsSpace());
-        
+    public void initializeGame() {
+        super.initializeGame();
+
         setupKeys();
-        
+
         //audioRenderer.setEnvironment(Environment.Dungeon);
         //AL10.alDistanceModel(AL11.AL_EXPONENT_DISTANCE);
         
@@ -104,13 +92,13 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
                     quad.removeControl(RigidBodyControl.class);
                 }
                 quad.addControl(new RigidBodyControl(new HeightfieldCollisionShape(quad.getHeightMap(), gameWorldView.terrain.terrainGrid.getLocalScale()), 0));
-                bulletAppState.getPhysicsSpace().add(quad);
+                getPhysicsSpace().add(quad);
             }
 
             @Override
             public void tileDetached(Vector3f cell, TerrainQuad quad) {
                 if (quad.getControl(RigidBodyControl.class) != null) {
-                    bulletAppState.getPhysicsSpace().remove(quad);
+                    getPhysicsSpace().remove(quad);
                     quad.removeControl(RigidBodyControl.class);
                 }
             }
@@ -150,6 +138,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addMapping("Space", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Reset", new KeyTrigger(KeyInput.KEY_RETURN));
         inputManager.addMapping("Esc", new KeyTrigger(KeyInput.KEY_ESCAPE));
+        inputManager.addMapping("Pause", new KeyTrigger(KeyInput.KEY_P));
         inputManager.addListener(this, "Lefts");
         inputManager.addListener(this, "Rights");
         inputManager.addListener(this, "Ups");
@@ -158,6 +147,7 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         inputManager.addListener(this, "Space");
         inputManager.addListener(this, "Reset");
         inputManager.addListener(this, "Esc");
+        inputManager.addListener(this, "Pause");
     }
 
     private void addCar()
@@ -424,10 +414,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         rootNode.attachChild(compassNode);
     }
     
-
-    
     @Override
-    public void simpleUpdate(float tpf) {
+    public void updateGame(float tpf) {
         Vector3f playerLocation = player.node.getWorldTranslation();
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
 
@@ -622,6 +610,8 @@ public class RoadTrip extends SimpleApplication implements ActionListener {
         }
         if (binding.equals("Esc")) {
             stop();
+        } else if (binding.equals("Pause")) {
+            setGamePaused(value);
         }
     }
 }
