@@ -63,6 +63,8 @@ public class RoadTrip extends GameApplication implements ActionListener {
     float inputTurning;
     float inputAccel;
     
+    String[] menuEntries = { "New Game", "Load Game", "Settings", "Credits", "Exit" };
+    int menuEntryIndex = 0;
     BitmapText uiText;
     Node menuBook;
         
@@ -139,14 +141,8 @@ public class RoadTrip extends GameApplication implements ActionListener {
         uiText.setAlignment(BitmapFont.Align.Left);
         uiText.setQueueBucket(RenderQueue.Bucket.Transparent);
         uiText.setSize(1.0f);
-        uiText.setText("~~~~~~~~~~~~~~~~~~~~\n   Road Trip   \n~~~~~~~~~~~~~~~~~~~~\n"
-                + " New Game \n"
-                + "$Load Game$\n"
-                + " Settings \n"
-                + " Credits \n"
-                + " Exit\n");
+        uiText.setText(getMenuText());
         menuBook.attachChild(uiText);
-        rootNode.attachChild(menuBook);
         
         chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);
@@ -515,133 +511,207 @@ public class RoadTrip extends GameApplication implements ActionListener {
 
     @Override
     public void onAction(String binding, boolean value, float tpf) {
-        if (player.vehicleNode == null) {
-            float walkSpeed = 1f;
-            float turnSpeed = 1f;
+        if (gamePaused) {
             if (binding.equals("Lefts")) {
-                if (value) {
-                    inputTurning += turnSpeed;
-                } else {
-                    inputTurning -= turnSpeed;
-                }
+                // meh
             } else if (binding.equals("Rights")) {
-                if (value) {
-                    inputTurning -= turnSpeed;
-                } else {
-                    inputTurning += turnSpeed;
-                }
+                // meh
             } else if (binding.equals("Ups")) {
                 if (value) {
-                    inputAccel += walkSpeed;
-                } else {
-                    inputAccel -= walkSpeed;
+                    menuEntryIndex = (menuEntryIndex - 1 + menuEntries.length) % menuEntries.length;
+                    uiText.setText(getMenuText());
                 }
             } else if (binding.equals("Downs")) {
                 if (value) {
-                    inputAccel -= walkSpeed;
-                } else {
-                    inputAccel += walkSpeed;
+                    menuEntryIndex = (menuEntryIndex + 1) % menuEntries.length;
+                    uiText.setText(getMenuText());
                 }
             } else if (binding.equals("Reset")) {
                 if (value) {
-                    System.out.println("Reset - to car");
-                    Vector3f playerPos = player.node.getWorldTranslation();
-                    for (VehicleNode vehicle : gameWorldState.vehicles) {
-                        Vector3f vehiclePos = vehicle.getWorldTranslation();
-                        float dist = playerPos.distance(vehiclePos);
-                        System.out.println(" .. dist: " + dist);
-                        if (dist < 5f) {
-                            player.vehicleNode = vehicle;
-                            player.node.removeFromParent();
-                            player.node.setLocalTranslation(0f, 0f, -1f);
-                            player.node.setLocalRotation(Quaternion.DIRECTION_Z);
-                            player.node.removeControl(player.characterControl);
-                            player.vehicleNode.attachChild(player.node);
-                            VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
-                            playerVehicle.accelerationValue = 0;
-                            playerVehicle.steeringValue = 0;
-                            player.walkDir = new Vector3f();
+                    switch (menuEntryIndex) {
+                        case 0: // New
                             break;
-                        }
+                        case 1: // Load
+                            break;
+                        case 2: // Settings
+                            break;
+                        case 3: // Credits
+                            break;
+                        case 4: // Exit
+                            stop();
+                            break;
+                        default:
+                            throw new RuntimeException("Unrecognized menu entry: " + menuEntryIndex);
                     }
+                }
+            } else if (binding.equals("Esc")) {
+                // TODO: hide menu
+                if (value) {
+                    setGamePaused(false);
                 }
             }
         } else {
-            VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
-            VehicleControl playerVehicleControl = player.vehicleNode.vehicleControl;
-            int playerCarType = playerVehicle.carType;
-            float steerMax = 0.5f;
-            if (playerCarType == VehicleInstance.TRUCK) {
-                steerMax = 0.7f;
-            }
-            if (binding.equals("Lefts")) {
-                if (value) {
-                    playerVehicle.steeringValue += steerMax;
-                } else {
-                    playerVehicle.steeringValue += -steerMax;
+            if (player.vehicleNode == null) {
+                float walkSpeed = 1f;
+                float turnSpeed = 1f;
+                if (binding.equals("Lefts")) {
+                    if (value) {
+                        inputTurning += turnSpeed;
+                    } else {
+                        inputTurning -= turnSpeed;
+                    }
+                } else if (binding.equals("Rights")) {
+                    if (value) {
+                        inputTurning -= turnSpeed;
+                    } else {
+                        inputTurning += turnSpeed;
+                    }
+                } else if (binding.equals("Ups")) {
+                    if (value) {
+                        inputAccel += walkSpeed;
+                    } else {
+                        inputAccel -= walkSpeed;
+                    }
+                } else if (binding.equals("Downs")) {
+                    if (value) {
+                        inputAccel -= walkSpeed;
+                    } else {
+                        inputAccel += walkSpeed;
+                    }
+                } else if (binding.equals("Reset")) {
+                    if (value) {
+                        System.out.println("Reset - to car");
+                        Vector3f playerPos = player.node.getWorldTranslation();
+                        for (VehicleNode vehicle : gameWorldState.vehicles) {
+                            Vector3f vehiclePos = vehicle.getWorldTranslation();
+                            float dist = playerPos.distance(vehiclePos);
+                            System.out.println(" .. dist: " + dist);
+                            if (dist < 5f) {
+                                player.vehicleNode = vehicle;
+                                player.node.removeFromParent();
+                                player.node.setLocalTranslation(0f, 0f, -1f);
+                                player.node.setLocalRotation(Quaternion.DIRECTION_Z);
+                                player.node.removeControl(player.characterControl);
+                                player.vehicleNode.attachChild(player.node);
+                                VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
+                                playerVehicle.accelerationValue = 0;
+                                playerVehicle.steeringValue = 0;
+                                player.walkDir = new Vector3f();
+                                break;
+                            }
+                        }
+                    }
                 }
-                playerVehicleControl.steer(playerVehicle.steeringValue);
-            } else if (binding.equals("Rights")) {
-                if (value) {
-                    playerVehicle.steeringValue += -steerMax;
-                } else {
-                    playerVehicle.steeringValue += steerMax;
-                }
-                playerVehicleControl.steer(playerVehicle.steeringValue);
-            } else if (binding.equals("Ups")) {
-                if (value) {
-                    playerVehicle.accelerationValue += playerVehicle.accelerationForce;
-                } else {
-                    playerVehicle.accelerationValue -= playerVehicle.accelerationForce;
-                }
-                playerVehicleControl.accelerate(2, playerVehicle.accelerationValue);
-                playerVehicleControl.accelerate(3, playerVehicle.accelerationValue);
+            } else {
+                VehicleInstance playerVehicle = player.vehicleNode.vehicleInstance;
+                VehicleControl playerVehicleControl = player.vehicleNode.vehicleControl;
+                int playerCarType = playerVehicle.carType;
+                float steerMax = 0.5f;
                 if (playerCarType == VehicleInstance.TRUCK) {
-                    playerVehicleControl.accelerate(4, playerVehicle.accelerationValue);
-                    playerVehicleControl.accelerate(5, playerVehicle.accelerationValue);
+                    steerMax = 0.7f;
                 }
-            } else if (binding.equals("Downs")) {
-                float b;
-                if (value) {
-                    playerVehicle.brakeForce = playerVehicle.accelerationForce;
-                } else {
-                    playerVehicle.brakeForce = 0f;
-                }
-                playerVehicleControl.brake(0, playerVehicle.brakeForce);
-                playerVehicleControl.brake(1, playerVehicle.brakeForce);
-            } else if (binding.equals("Revs")) {
-                if (value) {
-                    playerVehicle.accelerationValue += playerVehicle.accelerationForce;
-                } else {
-                    playerVehicle.accelerationValue -= playerVehicle.accelerationForce;
-                }
-                playerVehicleControl.accelerate(2, -playerVehicle.accelerationValue);
-                playerVehicleControl.accelerate(3, -playerVehicle.accelerationValue);
-                if (playerCarType == VehicleInstance.TRUCK) {
-                    playerVehicleControl.accelerate(4, -playerVehicle.accelerationValue);
-                    playerVehicleControl.accelerate(5, -playerVehicle.accelerationValue);
-                }
-            } else if (binding.equals("Space")) {
-                if (value) {
-                    playerVehicleControl.applyImpulse(player.jumpForce, Vector3f.ZERO);
-                }
-            } else if (binding.equals("Reset")) {
-                if (value) {
-                    System.out.println("Reset - from car");
-                    player.node.removeFromParent();
-                    player.node.addControl(player.characterControl);
-                    player.characterControl.warp(player.vehicleNode.getLocalTranslation());
-                    rootNode.attachChild(player.node);
-                    player.vehicleNode = null;
-                    player.walkDir = new Vector3f();
-                } else {
+                if (binding.equals("Lefts")) {
+                    if (value) {
+                        playerVehicle.steeringValue += steerMax;
+                    } else {
+                        playerVehicle.steeringValue += -steerMax;
+                    }
+                    playerVehicleControl.steer(playerVehicle.steeringValue);
+                } else if (binding.equals("Rights")) {
+                    if (value) {
+                        playerVehicle.steeringValue += -steerMax;
+                    } else {
+                        playerVehicle.steeringValue += steerMax;
+                    }
+                    playerVehicleControl.steer(playerVehicle.steeringValue);
+                } else if (binding.equals("Ups")) {
+                    if (value) {
+                        playerVehicle.accelerationValue += playerVehicle.accelerationForce;
+                    } else {
+                        playerVehicle.accelerationValue -= playerVehicle.accelerationForce;
+                    }
+                    playerVehicleControl.accelerate(2, playerVehicle.accelerationValue);
+                    playerVehicleControl.accelerate(3, playerVehicle.accelerationValue);
+                    if (playerCarType == VehicleInstance.TRUCK) {
+                        playerVehicleControl.accelerate(4, playerVehicle.accelerationValue);
+                        playerVehicleControl.accelerate(5, playerVehicle.accelerationValue);
+                    }
+                } else if (binding.equals("Downs")) {
+                    float b;
+                    if (value) {
+                        playerVehicle.brakeForce = playerVehicle.accelerationForce;
+                    } else {
+                        playerVehicle.brakeForce = 0f;
+                    }
+                    playerVehicleControl.brake(0, playerVehicle.brakeForce);
+                    playerVehicleControl.brake(1, playerVehicle.brakeForce);
+                } else if (binding.equals("Revs")) {
+                    if (value) {
+                        playerVehicle.accelerationValue += playerVehicle.accelerationForce;
+                    } else {
+                        playerVehicle.accelerationValue -= playerVehicle.accelerationForce;
+                    }
+                    playerVehicleControl.accelerate(2, -playerVehicle.accelerationValue);
+                    playerVehicleControl.accelerate(3, -playerVehicle.accelerationValue);
+                    if (playerCarType == VehicleInstance.TRUCK) {
+                        playerVehicleControl.accelerate(4, -playerVehicle.accelerationValue);
+                        playerVehicleControl.accelerate(5, -playerVehicle.accelerationValue);
+                    }
+                } else if (binding.equals("Space")) {
+                    if (value) {
+                        playerVehicleControl.applyImpulse(player.jumpForce, Vector3f.ZERO);
+                    }
+                } else if (binding.equals("Reset")) {
+                    if (value) {
+                        System.out.println("Reset - from car");
+                        player.node.removeFromParent();
+                        player.node.addControl(player.characterControl);
+                        player.characterControl.warp(player.vehicleNode.getLocalTranslation());
+                        rootNode.attachChild(player.node);
+                        player.vehicleNode = null;
+                        player.walkDir = new Vector3f();
+                    } else {
+                    }
                 }
             }
-        }
-        if (binding.equals("Esc")) {
-            stop();
-        } else if (binding.equals("Pause")) {
-            setGamePaused(value);
+            if (binding.equals("Esc")) {
+                // TODO: open menu
+                if (value) {
+                    setGamePaused(true);
+                }
+            } else if (binding.equals("Pause")) {
+                if (value) {
+                    setGamePaused(!gamePaused);
+                }
+            }
         }
     }
+
+    @Override
+    protected void onGamePause(boolean paused) {
+        super.onGamePause(paused);
+        
+        if (paused) {
+            rootNode.attachChild(menuBook);
+        } else {
+            menuBook.removeFromParent();
+        }
+    }
+
+    private CharSequence getMenuText()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("~~~~~~~~~~~~~~~~~~~~\n   Road Trip   \n~~~~~~~~~~~~~~~~~~~~\n");
+        for (int i = 0; i < menuEntries.length; i++) {
+            String entry = menuEntries[i];
+            boolean selected = (i == menuEntryIndex);
+            sb.append(selected ? "]>" : "  ");
+            sb.append(entry);
+            sb.append(selected ? "<[" : "  ");
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+    
+    
 }
