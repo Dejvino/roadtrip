@@ -15,10 +15,13 @@ A game about a journey involving vehicles and obstacles.
 * People
 * Walking around (Player & NPCs)
 * Sounds - car engine, wheels & slips
+* Target location
+* Main menu
+* Score
 
 ### TODO
-* Target location (winning condition)
-* Main menu
+* Winning condition (location)
+* Menu - statistics, save / load, credits
 * Sounds - crashes
 * Health indicator
 * Persistent content on terrain blocks
@@ -29,8 +32,8 @@ A game about a journey involving vehicles and obstacles.
 * Car models
 * Scenery models
 * Roadblocks
-* FPS camera
-* Orbit camera
+* FPV camera
+* Outro
 * Stealth
 * Clothing
 * Car customization

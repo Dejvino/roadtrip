@@ -31,6 +31,8 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.terrain.geomipmap.TerrainGridListener;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import roadtrip.model.VehicleInstance;
+import roadtrip.view.CompassNode;
+import roadtrip.view.GameMenuNode;
 import roadtrip.view.GameWorldView;
 import roadtrip.view.VehicleNode;
 import roadtrip.view.model.GameWorldState;
@@ -52,22 +54,21 @@ public class RoadTrip extends GameApplication implements ActionListener {
     private GameWorldState gameWorldState;
     private GameWorldView gameWorldView;
 
+    private GameMenuNode gameMenuNode;
+
     private ChaseCamera chaseCam;
 
     private Player player = new Player();
 
     private Vector3f journeyTarget = new Vector3f(50, 0f, 50f);
     private Node targetNode;
-    private Node compassNode;
+    private CompassNode compassNode;
     
     float inputTurning;
     float inputAccel;
-    
-    String[] menuEntries = { "New Game", "Load Game", "Settings", "Credits", "Exit" };
-    int menuEntryIndex = 0;
-    BitmapText uiText;
-    Node menuBook;
-        
+
+    int score = 0;
+
     @Override
     public void initializeGame() {
         super.initializeGame();
@@ -127,29 +128,20 @@ public class RoadTrip extends GameApplication implements ActionListener {
         
         addTarget();
         addCompass();
-        
-        menuBook = new Node("menu");
-        Geometry book = new Geometry("book", new Box(8, 8, 1));
-        Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", ColorRGBA.Brown);
-        book.setMaterial(mat);
-        book.setLocalTranslation(0f, 0f, -1.1f);
-        menuBook.attachChild(book);
-        BitmapFont fnt = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        uiText = new BitmapText(fnt, false);
-        uiText.setBox(new Rectangle(-5, 4, 12, 12));
-        uiText.setAlignment(BitmapFont.Align.Left);
-        uiText.setQueueBucket(RenderQueue.Bucket.Transparent);
-        uiText.setSize(1.0f);
-        uiText.setText(getMenuText());
-        menuBook.attachChild(uiText);
+		addGameMenu();
         
         chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);
         chaseCam.setSmoothMotion(true);
     }
 
-    private void setupKeys() {
+	protected void addGameMenu()
+	{
+		gameMenuNode = new GameMenuNode();
+		gameMenuNode.initialize(getAssetManager());
+	}
+
+	private void setupKeys() {
         inputManager.clearMappings();
         inputManager.addMapping("Lefts", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("Rights", new KeyTrigger(KeyInput.KEY_D));
@@ -173,183 +165,14 @@ public class RoadTrip extends GameApplication implements ActionListener {
 
     private void addCar()
     {
-        Node vehicleModel = new Node("VehicleModel");
-        VehicleInstance vehicleInstance = VehicleInstance.createVehicle(gameWorldState.vehicles.size() % VehicleInstance.getVehicleTypesCount());
-        vehicleInstance.brakeForce = vehicleInstance.accelerationForce;
-        
-        Material mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.getAdditionalRenderState().setWireframe(true);
-        mat.setColor("Color", ColorRGBA.Black);
+	    VehicleInstance vehicleInstance = VehicleInstance.createVehicle(gameWorldState.vehicles.size() % VehicleInstance.getVehicleTypesCount());
+	    vehicleInstance.brakeForce = vehicleInstance.accelerationForce;
 
-        //Create four wheels and add them at their locations
-        Vector3f wheelDirection = new Vector3f(0, -1, 0); // was 0, -1, 0
-        Vector3f wheelAxle = new Vector3f(-1, 0, 0); // was -1, 0, 0
-        float radius = 1.0f;
-        float restLength = 0.3f;
-        float yOff = 0.5f;
-        float xOff = 1.6f;
-        float zOff = 2f;
+        VehicleNode vehicle = new VehicleNode("Car " + vehicleInstance.toString(), vehicleInstance);
+        vehicle.initialize(assetManager);
 
-        Material matBody = new Material(getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
-        matBody.setFloat("Shininess", 32f);
-        matBody.setBoolean("UseMaterialColors", true);
-        matBody.setColor("Ambient",  ColorRGBA.Black);
-        matBody.setColor("Diffuse",  ColorRGBA.Red);
-        matBody.setColor("Specular", ColorRGBA.White);
-        
-        
-        if (vehicleInstance.carType == VehicleInstance.WEAK) {
-            Spatial carBody = getAssetManager().loadModel("Models/rivercrossing.j3o");
-            carBody.setLocalScale(1.1f, 0.8f, 0.8f);
-            carBody.setLocalTranslation(0f, -1f, 0f);
-            carBody.rotate(0f, 3.1415f, 0f);
-            vehicleModel.attachChild(carBody);
-        } else {
-            Geometry carBody = new Geometry("car body", new Box(new Vector3f(0.0f, 1f, 0.0f), 1.4f, 0.5f, 3.6f));
-            carBody.setMaterial(matBody);
-            vehicleModel.attachChild(carBody);
-        }
-
-        //create a compound shape and attach the BoxCollisionShape for the car body at 0,1,0
-        //this shifts the effective center of mass of the BoxCollisionShape to 0,-1,0
-        CompoundCollisionShape compoundShape = new CompoundCollisionShape();
-        BoxCollisionShape box = new BoxCollisionShape(new Vector3f(1.4f, 0.5f, 3.6f));
-        compoundShape.addChildShape(box, new Vector3f(0, 1, 0));
-        
-        if (vehicleInstance.carType == VehicleInstance.TRUCK) {
-            BoxCollisionShape boxCabin = new BoxCollisionShape(new Vector3f(1.4f, 0.8f, 1.0f));
-            compoundShape.addChildShape(boxCabin, new Vector3f(0, 2, 2f));
-            
-            Geometry carCabin = new Geometry("car cabin", new Box(new Vector3f(0, 2, 2f), 1.4f, 0.8f, 1.0f));
-            carCabin.setMaterial(matBody);
-            vehicleModel.attachChild(carCabin);
-        } else if (vehicleInstance.carType == VehicleInstance.SPORT) {
-            BoxCollisionShape boxCabin = new BoxCollisionShape(new Vector3f(1.2f, 0.6f, 2.0f));
-            compoundShape.addChildShape(boxCabin, new Vector3f(0, 2, -1f));
-            
-            Geometry carCabin = new Geometry("car cabin", new Box(new Vector3f(0, 2, -1f), 1.2f, 0.6f, 2.0f));
-            carCabin.setMaterial(matBody);
-            vehicleModel.attachChild(carCabin);
-        }
-        
-        VehicleControl vehicleControl = new VehicleControl(compoundShape, 500);
-        
-        //setting suspension values for wheels, this can be a bit tricky
-        //see also https://docs.google.com/Doc?docid=0AXVUZ5xw6XpKZGNuZG56a3FfMzU0Z2NyZnF4Zmo&hl=en
-        float stiffness = 30.0f;//200=f1 car
-        float compValue = .1f; //(should be lower than damp)
-        float dampValue = .2f;
-        vehicleControl.setSuspensionCompression(compValue * 2.0f * FastMath.sqrt(stiffness));
-        vehicleControl.setSuspensionDamping(dampValue * 2.0f * FastMath.sqrt(stiffness));
-        vehicleControl.setSuspensionStiffness(stiffness);
-        vehicleControl.setMaxSuspensionForce(10000.0f);
-        
-        Cylinder wheelMesh = new Cylinder(16, 16, radius, radius * 0.2f, true);
-
-        Node node1 = new Node("wheel 1 node");
-        Geometry wheels1 = new Geometry("wheel 1", wheelMesh);
-        node1.attachChild(wheels1);
-        wheels1.rotate(0, FastMath.HALF_PI, 0);
-        wheels1.setMaterial(mat);
-        vehicleControl.addWheel(node1, new Vector3f(-xOff, yOff, zOff),
-                wheelDirection, wheelAxle, restLength, radius, true);
-
-        Node node2 = new Node("wheel 2 node");
-        Geometry wheels2 = new Geometry("wheel 2", wheelMesh);
-        node2.attachChild(wheels2);
-        wheels2.rotate(0, FastMath.HALF_PI, 0);
-        wheels2.setMaterial(mat);
-        vehicleControl.addWheel(node2, new Vector3f(xOff, yOff, zOff),
-                wheelDirection, wheelAxle, restLength, radius, true);
-
-        Node node3 = new Node("wheel 3 node");
-        Geometry wheels3 = new Geometry("wheel 3", wheelMesh);
-        node3.attachChild(wheels3);
-        wheels3.rotate(0, FastMath.HALF_PI, 0);
-        wheels3.setMaterial(mat);
-        vehicleControl.addWheel(node3, new Vector3f(-xOff, yOff, -zOff),
-                wheelDirection, wheelAxle, restLength, radius, false);
-
-        Node node4 = new Node("wheel 4 node");
-        Geometry wheels4 = new Geometry("wheel 4", wheelMesh);
-        node4.attachChild(wheels4);
-        wheels4.rotate(0, FastMath.HALF_PI, 0);
-        wheels4.setMaterial(mat);
-        vehicleControl.addWheel(node4, new Vector3f(xOff, yOff, -zOff),
-                wheelDirection, wheelAxle, restLength, radius, false);
-        
-        vehicleModel.attachChild(node1);
-        vehicleModel.attachChild(node2);
-        vehicleModel.attachChild(node3);
-        vehicleModel.attachChild(node4);
-        
-        if (vehicleInstance.carType == VehicleInstance.TRUCK) {
-            Node node5 = new Node("wheel 5 node");
-            Geometry wheels5 = new Geometry("wheel 5", wheelMesh);
-            node5.attachChild(wheels5);
-            wheels5.rotate(0, FastMath.HALF_PI, 0);
-            wheels5.setMaterial(mat);
-            vehicleControl.addWheel(node5, new Vector3f(-xOff, yOff, 2.1f* -zOff),
-                    wheelDirection, wheelAxle, restLength, radius, false);
-
-            Node node6 = new Node("wheel 6 node");
-            Geometry wheels6 = new Geometry("wheel 6", wheelMesh);
-            node6.attachChild(wheels6);
-            wheels6.rotate(0, FastMath.HALF_PI, 0);
-            wheels6.setMaterial(mat);
-            vehicleControl.addWheel(node6, new Vector3f(xOff, yOff, 2.1f* -zOff),
-                    wheelDirection, wheelAxle, restLength, radius, false);
-            
-            vehicleModel.attachChild(node5);
-            vehicleModel.attachChild(node6);
-        }
-        
-        vehicleControl.getWheel(0).setFrictionSlip(0.8f);
-        vehicleControl.getWheel(1).setFrictionSlip(0.8f);
-        vehicleControl.getWheel(2).setFrictionSlip(0.6f);
-        vehicleControl.getWheel(3).setFrictionSlip(0.6f);
-            
-        if (vehicleInstance.carType == VehicleInstance.TRUCK) {
-            vehicleControl.getWheel(4).setFrictionSlip(0.6f);
-            vehicleControl.getWheel(5).setFrictionSlip(0.6f);
-        }
-        vehicleControl.setPhysicsLocation(new Vector3f(5f, 30f, 5f));
-        
-        VehicleNode vehicle = new VehicleNode("VehicleNode",
-                vehicleInstance, vehicleControl, vehicleModel);
-        vehicle.attachChild(vehicleModel);
-                
-        vehicle.engineAudio  = new AudioNode(assetManager, "Sounds/engine.ogg", false);
-        vehicle.engineAudio.setPositional(true);
-        vehicle.engineAudio.setLooping(true);
-        vehicle.engineAudio.setReverbEnabled(true);
-        vehicle.engineAudio.setRefDistance(5);
-        vehicle.engineAudio.setMaxDistance(1000000);
-        vehicle.attachChild(vehicle.engineAudio);
-        
-        vehicle.wheelsAudio  = new AudioNode(assetManager, "Sounds/wheels.ogg", false);
-        vehicle.wheelsAudio.setPositional(true);
-        vehicle.wheelsAudio.setLooping(true);
-        //wheelsAudio.setReverbEnabled(true);
-        vehicle.wheelsAudio.setRefDistance(1f);
-        vehicle.wheelsAudio.setMaxDistance(1000000f);
-        vehicle.wheelsAudio.play();
-        vehicle.attachChild(vehicle.wheelsAudio);
-        
-        vehicle.wheelSlipAudio  = new AudioNode(assetManager, "Sounds/wheel-slip.ogg", false);
-        vehicle.wheelSlipAudio.setPositional(true);
-        vehicle.wheelSlipAudio.setLooping(true);
-        //wheelsAudio.setReverbEnabled(true);
-        vehicle.wheelSlipAudio.setRefDistance(5);
-        vehicle.wheelSlipAudio.setMaxDistance(1000000);
-        vehicle.wheelSlipAudio.play();
-        vehicle.attachChild(vehicle.wheelSlipAudio);
-        
-        vehicle.addControl(vehicleControl);
-        getPhysicsSpace().add(vehicleControl);
-        vehicleControl.setPhysicsLocation(new Vector3f(10f + (float)Math.random() * 40f, 28f, 12f + (float)Math.random() * 40f));
-        
         gameWorldState.vehicles.add(vehicle);
+	    getPhysicsSpace().addAll(vehicle);
         rootNode.attachChild(vehicle);
     }
 
@@ -397,41 +220,11 @@ public class RoadTrip extends GameApplication implements ActionListener {
         
         targetNode.setLocalTranslation(journeyTarget);
     }
-    
-    BitmapText targetText;
-    
+
     private void addCompass()
     {
-        Material matRed = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        matRed.setColor("Color",  ColorRGBA.Red);
-        Material matBlack = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        matBlack.setColor("Color",  ColorRGBA.Black);
-        
-        Geometry compassGeomN = new Geometry("compass-N", new Arrow(new Vector3f(0.0f, 0.0f, 1.2f)));
-        compassGeomN.setMaterial(matRed);
-        Geometry compassGeomS = new Geometry("compass-S", new Arrow(new Vector3f(0.0f, 0.0f, -1.0f)));
-        compassGeomS.setMaterial(matBlack);
-        Geometry compassGeomW = new Geometry("compass-W", new Arrow(new Vector3f(-1.0f, 0.0f, 0.0f)));
-        compassGeomW.setMaterial(matBlack);
-        Geometry compassGeomE = new Geometry("compass-E", new Arrow(new Vector3f(1.0f, 0.0f, 0.0f)));
-        compassGeomE.setMaterial(matBlack);
-        
-        compassNode = new Node("compass");
-        compassNode.attachChild(compassGeomN);
-        compassNode.attachChild(compassGeomS);
-        compassNode.attachChild(compassGeomW);
-        compassNode.attachChild(compassGeomE);
-        
-        BitmapFont fnt = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        targetText = new BitmapText(fnt, false);
-        targetText.setBox(new Rectangle(-5, 4, 10, 4));
-        targetText.setAlignment(BitmapFont.Align.Center);
-        targetText.setQueueBucket(RenderQueue.Bucket.Transparent);
-        targetText.setSize( 1.2f );
-        targetText.setText("Target");
-        targetText.setLocalRotation(new Quaternion().fromAngles(0, 3.1415f, 0));
-        compassNode.attachChild(targetText);
-        
+        compassNode = new CompassNode();
+        compassNode.initialize(getAssetManager());
         rootNode.attachChild(compassNode);
     }
     
@@ -441,50 +234,13 @@ public class RoadTrip extends GameApplication implements ActionListener {
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
 
         for (VehicleNode vehicle : gameWorldState.vehicles) {
-            vehicle.vehicleInstance.accelerationSmooth = (vehicle.vehicleInstance.accelerationSmooth + vehicle.vehicleInstance.accelerationValue * (tpf * 10f)) / (1 + tpf * 10f);
-            vehicle.engineAudio.setVelocity(new Vector3f(0, 0, 0));
-            vehicle.engineAudio.updateGeometricState();
-            vehicle.engineAudio.setPitch(Math.max(0.5f, Math.min(vehicle.vehicleInstance.accelerationSmooth / vehicle.vehicleInstance.accelerationForce * 2f, 2.0f)));
-            boolean engineRunning = (vehicle.vehicleInstance.accelerationValue > 0.01f || vehicle.vehicleInstance.accelerationValue < -0.01f);
-            if ((vehicle.engineAudio.getStatus() == Status.Playing) && !engineRunning) {
-                vehicle.engineAudio.stop();
-            }
-            if ((vehicle.engineAudio.getStatus() != Status.Playing) && engineRunning) {
-                vehicle.engineAudio.play();
-            }
-
-            vehicle.wheelsAudio.updateGeometricState();
-            float wheelRot = Math.abs(vehicle.vehicleControl.getWheel(0).getDeltaRotation() + vehicle.vehicleControl.getWheel(1).getDeltaRotation()) / tpf / 100f;
-            // TODO: pitch
-            //System.out.println("wheel rot: " + wheelRot);
-            //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
-            vehicle.wheelsAudio.setVolume(Math.max(0.0001f, Math.min(wheelRot, 1.0f)) - 0.0001f);
-            if ((vehicle.wheelsAudio.getStatus() == Status.Playing) && wheelRot < 10f) {
-                vehicle.wheelsAudio.stop();
-            }
-            if ((vehicle.wheelsAudio.getStatus() != Status.Playing) && wheelRot > 10f) {
-                vehicle.wheelsAudio.play();
-            }
-
-            vehicle.wheelSlipAudio.updateGeometricState();
-            float slipAll = 0f;
-            for (int i = 0; i < vehicle.vehicleControl.getNumWheels(); i++) {
-                slipAll += vehicle.vehicleControl.getWheel(i).getSkidInfo();
-            }
-            float slip = 1f - (slipAll) / vehicle.vehicleControl.getNumWheels();
-            float wheelSlip = (slip * slip * slip * slip * slip * slip * slip) / tpf / 40f;
-            // TODO: pitch
-            //wheelsAudio.setPitch(Math.max(0.5f, Math.min(wheelRot * 4f, 2.0f)));
-            vehicle.wheelSlipAudio.setVolume(Math.max(0.0001f, Math.min(wheelSlip, 1.0f)) - 0.0001f);
+            vehicle.update(tpf);
         }
         
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
        
-        menuBook.setLocalTranslation(cam.getLocation().add(cam.getRotation().mult(Vector3f.UNIT_Z).mult(30.0f)));
-        Quaternion textRot = new Quaternion();
-        textRot.lookAt(new Vector3f(player.node.getWorldTranslation()).subtractLocal(cam.getLocation()).negate(), Vector3f.UNIT_Y);
-        menuBook.setLocalRotation(textRot);
+        gameMenuNode.moveToCamera(cam, player.node);
         
         if (player.vehicleNode == null) {
             player.characterControl.setViewDirection(new Quaternion().fromAngleAxis(inputTurning * tpf, Vector3f.UNIT_Y).mult(player.characterControl.getViewDirection()));
@@ -498,18 +254,25 @@ public class RoadTrip extends GameApplication implements ActionListener {
         Vector3f targetDir = targetPos2d.subtract(playerPos2d);
         float targetDistance = targetDir.length();
         if (targetDistance < 5f) {
-            double angle = Math.random() * 2d - 1d;
-            journeyTarget = journeyTarget.add(new Quaternion().fromAngleAxis((float) angle, Vector3f.UNIT_Y).mult(Vector3f.UNIT_Z).mult(100f));
-            targetNode.setLocalTranslation(journeyTarget);
+	        onReachedTarget();
         }
         
-        targetText.setText(((int)targetDistance) + " m");
-        
+        compassNode.setTargetText(((int)targetDistance) + " m");
         compassNode.setLocalTranslation(new Vector3f(player.node.getWorldTranslation()).addLocal(0f, 5f, 0f));
         compassNode.setLocalRotation(new Quaternion().fromAngles(0f, (float)Math.atan2(targetDir.x, targetDir.z)/*targetDir.angleBetween(Vector3f.UNIT_Z)*/, 0f));
     }
 
-    @Override
+	protected void onReachedTarget()
+	{
+		score++;
+		gameMenuNode.setMenuEntriesPrefix("SCORE: " + score + "\n\n");
+
+		double angle = Math.random() * 2d - 1d;
+		journeyTarget = journeyTarget.add(new Quaternion().fromAngleAxis((float) angle, Vector3f.UNIT_Y).mult(Vector3f.UNIT_Z).mult(100f));
+		targetNode.setLocalTranslation(journeyTarget);
+	}
+
+	@Override
     public void onAction(String binding, boolean value, float tpf) {
         if (gamePaused) {
             if (binding.equals("Lefts")) {
@@ -518,17 +281,15 @@ public class RoadTrip extends GameApplication implements ActionListener {
                 // meh
             } else if (binding.equals("Ups")) {
                 if (value) {
-                    menuEntryIndex = (menuEntryIndex - 1 + menuEntries.length) % menuEntries.length;
-                    uiText.setText(getMenuText());
+                    gameMenuNode.nextMenuEntry();
                 }
             } else if (binding.equals("Downs")) {
                 if (value) {
-                    menuEntryIndex = (menuEntryIndex + 1) % menuEntries.length;
-                    uiText.setText(getMenuText());
+                    gameMenuNode.prevMenuEntry();
                 }
             } else if (binding.equals("Reset")) {
                 if (value) {
-                    switch (menuEntryIndex) {
+                    switch (gameMenuNode.getMenuEntryIndex()) {
                         case 0: // New
                             break;
                         case 1: // Load
@@ -541,7 +302,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
                             stop();
                             break;
                         default:
-                            throw new RuntimeException("Unrecognized menu entry: " + menuEntryIndex);
+                            throw new RuntimeException("Unrecognized menu entry: " + gameMenuNode.getMenuEntryIndex());
                     }
                 }
             } else if (binding.equals("Esc")) {
@@ -692,26 +453,10 @@ public class RoadTrip extends GameApplication implements ActionListener {
         super.onGamePause(paused);
         
         if (paused) {
-            rootNode.attachChild(menuBook);
+            rootNode.attachChild(gameMenuNode);
         } else {
-            menuBook.removeFromParent();
+            gameMenuNode.removeFromParent();
         }
     }
-
-    private CharSequence getMenuText()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("~~~~~~~~~~~~~~~~~~~~\n   Road Trip   \n~~~~~~~~~~~~~~~~~~~~\n");
-        for (int i = 0; i < menuEntries.length; i++) {
-            String entry = menuEntries[i];
-            boolean selected = (i == menuEntryIndex);
-            sb.append(selected ? "]>" : "  ");
-            sb.append(entry);
-            sb.append(selected ? "<[" : "  ");
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-    
     
 }
