@@ -1,4 +1,4 @@
-package roadtrip.view.model;
+package roadtrip.model;
 
 import roadtrip.model.AbstractProceduralBlock;
 import roadtrip.model.ProceduralMapQuadBlock;

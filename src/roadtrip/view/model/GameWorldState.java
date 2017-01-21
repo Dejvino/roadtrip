@@ -1,5 +1,6 @@
 package roadtrip.view.model;
 
+import roadtrip.model.ProceduralMapBlock;
 import roadtrip.view.VehicleNode;
 
 import java.util.LinkedList;

@@ -179,9 +179,16 @@ public class GameWorldView {
                 //System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
                 //System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
                 float cellSize = terrainGrid.getPatchSize() * terrainGrid.getLocalScale().x * 2f;
-                for (int i = 0; i < quadRand.nextInt(1000); i++) {
-                    Vector2f pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
-                            .addLocal(quad.getWorldTranslation().x, quad.getWorldTranslation().z);
+                Vector2f prevPos = null;
+                for (int i = 0; i < quadRand.nextInt(10000); i++) {
+                    Vector2f pos;
+                    if (prevPos == null || quadRand.nextFloat() < 0.2f) {
+                        pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
+                                .addLocal(quad.getWorldTranslation().x, quad.getWorldTranslation().z);
+                    } else {
+                        pos = new Vector2f((quadRand.nextFloat() - 0.5f) * 20f, (quadRand.nextFloat() - 0.5f) * 20f).addLocal(prevPos);
+                    }
+                    prevPos = pos;
                     float height = quad.getHeight(pos);
                     Vector3f location = new Vector3f(pos.x, height, pos.y)
                             .addLocal(terrainGrid.getWorldTranslation());
