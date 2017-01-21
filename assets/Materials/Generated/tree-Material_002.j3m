@@ -1,0 +1,23 @@
+Material MyMaterial : Common/MatDefs/Light/Lighting.j3md {
+    MaterialParameters {
+        DiffuseMap : Repeat Textures/solid-grass.png
+        GlowColor : 0.0 0.0 0.0 1.0
+        Specular : 0.051366556 0.24696888 0.0029339949 1.0
+        Diffuse : 0.029459173 0.08522777 0.010477433 1.0
+        UseMaterialColors : true
+        ParallaxHeight : 0.05
+        Ambient : 0.036823966 0.10653471 0.013096791 1.0
+        Shininess : 10.5
+    }
+    AdditionalRenderState {
+      FaceCull Back
+      Wireframe Off
+      DepthWrite On
+      PolyOffset 0.0 0.0
+      AlphaTestFalloff 0.0
+      Blend Off
+      PointSprite Off
+      ColorWrite On
+      DepthTest On
+    }
+}

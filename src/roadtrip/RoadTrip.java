@@ -2,9 +2,7 @@ package roadtrip;
 
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource.Status;
-import com.jme3.bullet.collision.shapes.BoxCollisionShape;
-import com.jme3.bullet.collision.shapes.CompoundCollisionShape;
-import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
+import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.control.VehicleControl;
@@ -15,12 +13,10 @@ import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
+import com.jme3.math.*;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -28,8 +24,10 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
+import com.jme3.terrain.geomipmap.TerrainGrid;
 import com.jme3.terrain.geomipmap.TerrainGridListener;
 import com.jme3.terrain.geomipmap.TerrainQuad;
+import java.util.Random;
 import roadtrip.model.VehicleInstance;
 import roadtrip.view.CompassNode;
 import roadtrip.view.GameMenuNode;
@@ -49,7 +47,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
         app.start();
     }
 
-    public static boolean DEBUG = false;//true;
+    public static boolean DEBUG = /*false;/*/true;/**/
 
     private GameWorldState gameWorldState;
     private GameWorldView gameWorldView;
@@ -73,6 +71,11 @@ public class RoadTrip extends GameApplication implements ActionListener {
     public void initializeGame() {
         super.initializeGame();
 
+        bulletAppState.setDebugEnabled(DEBUG);
+        if (DEBUG) {
+            attachDebugStates();
+        }
+        
         setupKeys();
 
         //audioRenderer.setEnvironment(Environment.Dungeon);
@@ -83,10 +86,14 @@ public class RoadTrip extends GameApplication implements ActionListener {
         dl.setColor(ColorRGBA.LightGray);
         dl.setDirection(new Vector3f(1, -1, 1));
         rootNode.addLight(dl);
+        AmbientLight al = new AmbientLight();
+        al.setColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
+        rootNode.addLight(al);
 
         gameWorldState = new GameWorldState();
         gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode);
-        gameWorldView.terrain.terrainGrid.addListener(new TerrainGridListener() {
+        final TerrainGrid terrainGrid = gameWorldView.terrain.terrainGrid;
+        terrainGrid.addListener(new TerrainGridListener() {
 
             @Override
             public void gridMoved(Vector3f newCenter) {
@@ -97,8 +104,41 @@ public class RoadTrip extends GameApplication implements ActionListener {
                 while(quad.getControl(RigidBodyControl.class)!=null){
                     quad.removeControl(RigidBodyControl.class);
                 }
-                quad.addControl(new RigidBodyControl(new HeightfieldCollisionShape(quad.getHeightMap(), gameWorldView.terrain.terrainGrid.getLocalScale()), 0));
+                quad.addControl(new RigidBodyControl(new HeightfieldCollisionShape(quad.getHeightMap(), terrainGrid.getLocalScale()), 0));
                 getPhysicsSpace().add(quad);
+                
+                String treesKey = "trees-" + quad.getName();
+                Spatial treesOld = rootNode.getChild(treesKey);
+                if (treesOld != null) {
+                    getPhysicsSpace().removeAll(treesOld);
+                    treesOld.removeFromParent();
+                }
+                
+                Node trees = new Node(treesKey);
+                Random quadRand = new Random(treesKey.hashCode());
+                Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
+                System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
+                System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
+                float cellSize = terrainGrid.getPatchSize() * terrainGrid.getLocalScale().x * 2f;
+                for (int i = 0; i < quadRand.nextInt(1000); i++) {
+                    Vector2f pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
+                            .addLocal(quad.getWorldTranslation().x, quad.getWorldTranslation().z);
+                    float height = quad.getHeight(pos);
+                    Vector3f location = new Vector3f(pos.x, height, pos.y)
+                            .addLocal(terrainGrid.getWorldTranslation());
+                    System.out.println("Tree " + i + ": " + location);
+                    Spatial treeInstance = treeModel.clone();
+                    treeInstance.setLocalTranslation(location);
+                    //RigidBodyControl control = treeInstance.getControl(RigidBodyControl.class);
+                    RigidBodyControl control = new RigidBodyControl(new ConeCollisionShape(1f, 5f), 0f);
+                    if (control != null) {
+                        treeInstance.addControl(control);
+                        control.setPhysicsLocation(location);
+                        getPhysicsSpace().add(control);
+                    }
+                    trees.attachChild(treeInstance);
+                }
+                rootNode.attachChild(trees);
             }
 
             @Override
@@ -106,11 +146,15 @@ public class RoadTrip extends GameApplication implements ActionListener {
                 if (quad.getControl(RigidBodyControl.class) != null) {
                     getPhysicsSpace().remove(quad);
                     quad.removeControl(RigidBodyControl.class);
+                    String treesKey = "trees-" + quad.getName();
+                    Spatial trees = rootNode.getChild(treesKey);
+                    getPhysicsSpace().removeAll(trees);
+                    trees.removeFromParent();
                 }
             }
 
         });
-
+        
         addCar();
         addCar();
         addCar();
