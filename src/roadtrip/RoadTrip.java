@@ -90,71 +90,9 @@ public class RoadTrip extends GameApplication implements ActionListener {
         al.setColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
         rootNode.addLight(al);
 
-        gameWorldState = new GameWorldState();
-        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode);
-        final TerrainGrid terrainGrid = gameWorldView.terrain.terrainGrid;
-        terrainGrid.addListener(new TerrainGridListener() {
+        gameWorldState = new GameWorldState(1L);
+        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode, getPhysicsSpace());
 
-            @Override
-            public void gridMoved(Vector3f newCenter) {
-            }
-
-            @Override
-            public void tileAttached(Vector3f cell, TerrainQuad quad) {
-                while(quad.getControl(RigidBodyControl.class)!=null){
-                    quad.removeControl(RigidBodyControl.class);
-                }
-                quad.addControl(new RigidBodyControl(new HeightfieldCollisionShape(quad.getHeightMap(), terrainGrid.getLocalScale()), 0));
-                getPhysicsSpace().add(quad);
-                
-                String treesKey = "trees-" + quad.getName();
-                Spatial treesOld = rootNode.getChild(treesKey);
-                if (treesOld != null) {
-                    getPhysicsSpace().removeAll(treesOld);
-                    treesOld.removeFromParent();
-                }
-                
-                Node trees = new Node(treesKey);
-                Random quadRand = new Random(treesKey.hashCode());
-                Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
-                System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
-                System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
-                float cellSize = terrainGrid.getPatchSize() * terrainGrid.getLocalScale().x * 2f;
-                for (int i = 0; i < quadRand.nextInt(1000); i++) {
-                    Vector2f pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
-                            .addLocal(quad.getWorldTranslation().x, quad.getWorldTranslation().z);
-                    float height = quad.getHeight(pos);
-                    Vector3f location = new Vector3f(pos.x, height, pos.y)
-                            .addLocal(terrainGrid.getWorldTranslation());
-                    System.out.println("Tree " + i + ": " + location);
-                    Spatial treeInstance = treeModel.clone();
-                    treeInstance.setLocalTranslation(location);
-                    //RigidBodyControl control = treeInstance.getControl(RigidBodyControl.class);
-                    RigidBodyControl control = new RigidBodyControl(new ConeCollisionShape(1f, 5f), 0f);
-                    if (control != null) {
-                        treeInstance.addControl(control);
-                        control.setPhysicsLocation(location);
-                        getPhysicsSpace().add(control);
-                    }
-                    trees.attachChild(treeInstance);
-                }
-                rootNode.attachChild(trees);
-            }
-
-            @Override
-            public void tileDetached(Vector3f cell, TerrainQuad quad) {
-                if (quad.getControl(RigidBodyControl.class) != null) {
-                    getPhysicsSpace().remove(quad);
-                    quad.removeControl(RigidBodyControl.class);
-                    String treesKey = "trees-" + quad.getName();
-                    Spatial trees = rootNode.getChild(treesKey);
-                    getPhysicsSpace().removeAll(trees);
-                    trees.removeFromParent();
-                }
-            }
-
-        });
-        
         addCar();
         addCar();
         addCar();
@@ -172,7 +110,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
         
         addTarget();
         addCompass();
-		addGameMenu();
+	addGameMenu();
         
         chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);

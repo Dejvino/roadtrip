@@ -39,7 +39,7 @@ public abstract class AbstractProceduralBlock implements ProceduralBlock
 	{
 		if (subBlockClass == null) throw new NullPointerException("subBlockClass");
 		try {
-			Constructor<T> constructor = subBlockClass.getConstructor(Long.class);
+			Constructor<T> constructor = subBlockClass.getConstructor(Long.TYPE);
 			return constructor.newInstance(getSubBlockSeed(subBlockKey));
 		} catch (NoSuchMethodException e) {
 			throw new IllegalArgumentException("Class " + subBlockClass + " does not have the default constructor with a single 'long' parameter.", e);

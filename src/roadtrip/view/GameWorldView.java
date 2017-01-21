@@ -1,12 +1,16 @@
 package roadtrip.view;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.bullet.PhysicsSpace;
+import com.jme3.bullet.collision.shapes.ConeCollisionShape;
 import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.material.Material;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.terrain.geomipmap.*;
 import com.jme3.terrain.geomipmap.grid.FractalTileLoader;
 import com.jme3.terrain.geomipmap.lodcalc.DistanceLodCalculator;
@@ -19,31 +23,36 @@ import com.jme3.terrain.noise.filter.SmoothFilter;
 import com.jme3.terrain.noise.fractal.FractalSum;
 import com.jme3.terrain.noise.modulator.NoiseModulator;
 import com.jme3.texture.Texture;
+import roadtrip.model.ProceduralMapQuadBlock;
 import roadtrip.model.TerrainDataProvider;
 import roadtrip.view.model.GameWorldState;
+
+import java.util.Random;
 
 /**
  * Created by dejvino on 14.01.2017.
  */
 public class GameWorldView {
 
-    private GameWorldState state;
+    private final GameWorldState state;
 
-    private AssetManager assetManager;
-    private Camera camera;
-    private Node rootNode;
+    private final AssetManager assetManager;
+    private final Camera camera;
+    private final Node rootNode;
+    private final PhysicsSpace physicsSpace;
 
     public TerrainView terrain = new TerrainView(new TerrainDataProvider());
 
-    public GameWorldView(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode) {
+    public GameWorldView(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode, PhysicsSpace physicsSpace) {
         this.state = gameWorldState;
         this.assetManager = assetManager;
         this.camera = camera;
         this.rootNode = rootNode;
+        this.physicsSpace = physicsSpace;
     }
 
-    public static GameWorldView create(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode) {
-        GameWorldView gameWorldView = new GameWorldView(gameWorldState, assetManager, camera, rootNode);
+    public static GameWorldView create(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode, PhysicsSpace physicsSpace) {
+        GameWorldView gameWorldView = new GameWorldView(gameWorldState, assetManager, camera, rootNode, physicsSpace);
         gameWorldView.initialize();
         return gameWorldView;
     }
@@ -134,5 +143,88 @@ public class GameWorldView {
         TerrainLodControl control = new TerrainGridLodControl(terrain.terrainGrid, camera);
         control.setLodCalculator(new DistanceLodCalculator(64 + 1, 2.7f)); // patch size, and a multiplier
         terrain.terrainGrid.addControl(control);
+
+        final TerrainGrid terrainGrid = terrain.terrainGrid;
+        terrainGrid.addListener(new TerrainGridListener() {
+
+            @Override
+            public void gridMoved(Vector3f newCenter) {
+            }
+
+            @Override
+            public void tileAttached(Vector3f cell, TerrainQuad quad) {
+                while(quad.getControl(RigidBodyControl.class)!=null){
+                    quad.removeControl(RigidBodyControl.class);
+                }
+                quad.addControl(new RigidBodyControl(new HeightfieldCollisionShape(quad.getHeightMap(), terrainGrid.getLocalScale()), 0));
+                physicsSpace.add(quad);
+
+                removeQuadObjectsNode(quad);
+
+                String quadObjectsNodeKey = getQuadObjectsNodeKey(quad);
+                Node objects = new Node(quadObjectsNodeKey);
+                populateQuadObjectsNode(quad, quadObjectsNodeKey, objects);
+                rootNode.attachChild(objects);
+            }
+
+            protected void populateQuadObjectsNode(TerrainQuad quad, String quadObjectsNodeKey, Node objects)
+            {
+                ProceduralMapQuadBlock mapQuadBlock = state.proceduralMap.getMapQuadBlock(quad.getName());
+
+                // TODO: move any access to the Random into the ProceduralMapQuadBlock
+                Random quadRand = mapQuadBlock.getBlockRandom();
+
+                // Generate trees
+                Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
+                //System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
+                //System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
+                float cellSize = terrainGrid.getPatchSize() * terrainGrid.getLocalScale().x * 2f;
+                for (int i = 0; i < quadRand.nextInt(1000); i++) {
+                    Vector2f pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
+                            .addLocal(quad.getWorldTranslation().x, quad.getWorldTranslation().z);
+                    float height = quad.getHeight(pos);
+                    Vector3f location = new Vector3f(pos.x, height, pos.y)
+                            .addLocal(terrainGrid.getWorldTranslation());
+                    System.out.println("Tree " + i + ": " + location);
+                    Spatial treeInstance = treeModel.clone();
+                    treeInstance.setLocalTranslation(location);
+                    // TODO: physics from the model and not hard-coded
+                    //RigidBodyControl control = treeInstance.getControl(RigidBodyControl.class);
+                    RigidBodyControl control = new RigidBodyControl(new ConeCollisionShape(1f, 5f), 0f);
+                    if (control != null) {
+                        treeInstance.addControl(control);
+                        control.setPhysicsLocation(location);
+                        physicsSpace.add(control);
+                    }
+                    objects.attachChild(treeInstance);
+                }
+            }
+
+            @Override
+            public void tileDetached(Vector3f cell, TerrainQuad quad) {
+                if (quad.getControl(RigidBodyControl.class) != null) {
+                    physicsSpace.remove(quad);
+                    quad.removeControl(RigidBodyControl.class);
+                }
+                removeQuadObjectsNode(quad);
+            }
+
+            protected void removeQuadObjectsNode(TerrainQuad quad)
+            {
+                Spatial quadObjectsNodeOld = rootNode.getChild(getQuadObjectsNodeKey(quad));
+                if (quadObjectsNodeOld != null) {
+                    physicsSpace.removeAll(quadObjectsNodeOld);
+                    quadObjectsNodeOld.removeFromParent();
+                }
+            }
+
+            private String getQuadObjectsNodeKey(TerrainQuad quad)
+            {
+                return "Objects-" + quad.getName();
+            }
+
+        });
+
     }
+
 }
