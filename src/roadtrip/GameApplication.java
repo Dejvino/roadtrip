@@ -26,6 +26,12 @@ public abstract class GameApplication extends NotSoSimpleApplication
         stateManager.attach(bulletAppState);
     }
 
+    @Override
+    public void update() {
+        super.update();
+        updateListenerPosition();
+    }
+
     protected PhysicsSpace getPhysicsSpace(){
         return bulletAppState.getPhysicsSpace();
     }
@@ -42,5 +48,11 @@ public abstract class GameApplication extends NotSoSimpleApplication
     protected void onGamePause(boolean paused)
     {
         bulletAppState.setEnabled(!paused);
+    }
+
+    protected void updateListenerPosition()
+    {
+        listener.setLocation(cam.getLocation());
+        listener.setRotation(cam.getRotation());
     }
 }

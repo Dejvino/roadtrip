@@ -5,8 +5,10 @@ import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.ConeCollisionShape;
 import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.light.AmbientLight;
+import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
-import com.jme3.math.Vector2f;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
@@ -23,11 +25,10 @@ import com.jme3.terrain.noise.filter.SmoothFilter;
 import com.jme3.terrain.noise.fractal.FractalSum;
 import com.jme3.terrain.noise.modulator.NoiseModulator;
 import com.jme3.texture.Texture;
+import roadtrip.model.MapObjectInstance;
 import roadtrip.model.ProceduralMapQuadBlock;
 import roadtrip.model.TerrainDataProvider;
 import roadtrip.view.model.GameWorldState;
-
-import java.util.Random;
 
 /**
  * Created by dejvino on 14.01.2017.
@@ -59,6 +60,15 @@ public class GameWorldView {
 
     private void initialize()
     {
+        // Environment
+        DirectionalLight dl = new DirectionalLight();
+        dl.setColor(ColorRGBA.LightGray);
+        dl.setDirection(new Vector3f(1, -1, 1));
+        rootNode.addLight(dl);
+        AmbientLight al = new AmbientLight();
+        al.setColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
+        rootNode.addLight(al);
+        
         // TERRAIN TEXTURE material
         terrain.mat_terrain = new Material(assetManager, "Common/MatDefs/Terrain/HeightBasedTerrain.j3md");
 
@@ -133,15 +143,15 @@ public class GameWorldView {
 
         ground.addPreFilter(terrain.terrainDataProvider.iterate);
 
-        terrain.terrainGrid = new TerrainGrid("terrain", 64 + 1, 256 + 1, new FractalTileLoader(ground, 300f));
+        terrain.terrainGrid = new TerrainGrid("terrain", 16 + 1, 512 + 1, new FractalTileLoader(ground, 300f));
 
         terrain.terrainGrid.setMaterial(terrain.mat_terrain);
-        terrain.terrainGrid.setLocalTranslation(0, -200, 0);
-        terrain.terrainGrid.setLocalScale(2f, 1f, 2f);
+        //terrain.terrainGrid.setLocalTranslation(0, -200, 0);
+        //terrain.terrainGrid.setLocalScale(2f, 1f, 2f);
         this.rootNode.attachChild(terrain.terrainGrid);
 
         TerrainLodControl control = new TerrainGridLodControl(terrain.terrainGrid, camera);
-        control.setLodCalculator(new DistanceLodCalculator(64 + 1, 2.7f)); // patch size, and a multiplier
+        control.setLodCalculator(new DistanceLodCalculator(32 + 1, 2.7f)); // patch size, and a multiplier
         terrain.terrainGrid.addControl(control);
 
         final TerrainGrid terrainGrid = terrain.terrainGrid;
@@ -163,48 +173,33 @@ public class GameWorldView {
 
                 String quadObjectsNodeKey = getQuadObjectsNodeKey(quad);
                 Node objects = new Node(quadObjectsNodeKey);
-                populateQuadObjectsNode(quad, quadObjectsNodeKey, objects);
+                populateQuadObjectsNode(quad, objects);
                 rootNode.attachChild(objects);
             }
 
-            protected void populateQuadObjectsNode(TerrainQuad quad, String quadObjectsNodeKey, Node objects)
+            protected void populateQuadObjectsNode(TerrainQuad quad, Node objects)
             {
-                ProceduralMapQuadBlock mapQuadBlock = state.proceduralMap.getMapQuadBlock(quad.getName());
+                ProceduralMapQuadBlock mapQuadBlock = state.proceduralMap.getMapQuadBlock(quad);
 
-                // TODO: move any access to the Random into the ProceduralMapQuadBlock
-                Random quadRand = mapQuadBlock.getBlockRandom();
-
-                // Generate trees
+                // Add map objects (for now - trees)
                 Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
                 //System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
                 //System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
-                float cellSize = terrainGrid.getPatchSize() * terrainGrid.getLocalScale().x * 2f;
-                Vector2f prevPos = null;
-                for (int i = 0; i < quadRand.nextInt(10000); i++) {
-                    Vector2f pos;
-                    if (prevPos == null || quadRand.nextFloat() < 0.2f) {
-                        pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
-                                .addLocal(quad.getWorldTranslation().x, quad.getWorldTranslation().z);
-                    } else {
-                        pos = new Vector2f((quadRand.nextFloat() - 0.5f) * 20f, (quadRand.nextFloat() - 0.5f) * 20f).addLocal(prevPos);
-                    }
-                    prevPos = pos;
-                    float height = quad.getHeight(pos);
-                    Vector3f location = new Vector3f(pos.x, height, pos.y)
-                            .addLocal(terrainGrid.getWorldTranslation());
-                    System.out.println("Tree " + i + ": " + location);
-                    Spatial treeInstance = treeModel.clone();
-                    treeInstance.setLocalTranslation(location);
+                for (MapObjectInstance mapObject : mapQuadBlock.getMapObjects()) {
+                    Vector3f pos = mapObject.getPosition();
+                    Spatial modelInstance = treeModel.clone();
+                    modelInstance.setLocalTranslation(pos);
                     // TODO: physics from the model and not hard-coded
                     //RigidBodyControl control = treeInstance.getControl(RigidBodyControl.class);
                     RigidBodyControl control = new RigidBodyControl(new ConeCollisionShape(1f, 5f), 0f);
                     if (control != null) {
-                        treeInstance.addControl(control);
-                        control.setPhysicsLocation(location);
+                        modelInstance.addControl(control);
+                        control.setPhysicsLocation(pos);
                         physicsSpace.add(control);
                     }
-                    objects.attachChild(treeInstance);
+                    objects.attachChild(modelInstance);
                 }
+                //objects.setLocalTranslation(terrainGrid.getWorldTranslation());
             }
 
             @Override

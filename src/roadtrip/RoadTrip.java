@@ -153,6 +153,8 @@ public class RoadTrip extends GameApplication implements ActionListener {
         VehicleNode vehicle = new VehicleNode("Car " + vehicleInstance.toString(), vehicleInstance);
         vehicle.initialize(assetManager);
 
+        vehicle.vehicleControl.setPhysicsLocation(new Vector3f(10f + (float)Math.random() * 40f, 228f, 12f + (float)Math.random() * 40f));
+
         gameWorldState.vehicles.add(vehicle);
 	    getPhysicsSpace().addAll(vehicle);
         rootNode.attachChild(vehicle);
@@ -169,7 +171,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
         person.addControl(personControl);
         /**/personControl.setJumpForce(new Vector3f(0,5f,0));
         personControl.setGravity(new Vector3f(0,1f,0));
-        personControl.warp(new Vector3f(10f + (float)Math.random() * 20f, 30f, 12f + (float)Math.random() * 20f));/**/
+        personControl.warp(new Vector3f(10f + (float)Math.random() * 20f, 230f, 12f + (float)Math.random() * 20f));/**/
         //personControl.setPhysicsLocation(new Vector3f(10f, 30f, 12f));
         getPhysicsSpace().add(personControl);
         //getPhysicsSpace().addAll(person);

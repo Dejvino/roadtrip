@@ -213,7 +213,6 @@ public class VehicleNode extends Node
 		vehicle.attachChild(vehicle.wheelSlipAudio);
 
 		vehicle.addControl(vehicleControl);
-		vehicleControl.setPhysicsLocation(new Vector3f(10f + (float)Math.random() * 40f, 28f, 12f + (float)Math.random() * 40f));
 	}
 
 	public void update(float tpf)

@@ -1,5 +1,6 @@
 package roadtrip.model;
 
+import com.jme3.terrain.geomipmap.TerrainQuad;
 import roadtrip.model.AbstractProceduralBlock;
 import roadtrip.model.ProceduralMapQuadBlock;
 
@@ -13,8 +14,10 @@ public class ProceduralMapBlock extends AbstractProceduralBlock
 		super(seed);
 	}
 
-	public ProceduralMapQuadBlock getMapQuadBlock(String quadName)
+	public ProceduralMapQuadBlock getMapQuadBlock(TerrainQuad terrainQuad)
 	{
-		return getSubBlock(quadName, ProceduralMapQuadBlock.class);
+		ProceduralMapQuadBlock quadBlock = getSubBlock(terrainQuad.getName(), ProceduralMapQuadBlock.class);
+		quadBlock.initialize(terrainQuad);
+		return quadBlock;
 	}
 }
