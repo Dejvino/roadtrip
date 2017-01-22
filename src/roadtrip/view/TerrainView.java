@@ -9,7 +9,7 @@ import roadtrip.model.TerrainDataProvider;
  */
 public class TerrainView {
     public Material mat_terrain;
-    public TerrainGrid terrainGrid;
+    public FineTerrainGrid terrainGrid;
     public float grassScale = 64;
     public float dirtScale = 64;
     public float rockScale = 64;

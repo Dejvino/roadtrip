@@ -35,6 +35,8 @@ import roadtrip.view.model.GameWorldState;
  */
 public class GameWorldView {
 
+    public static boolean DEBUG = false;//true;
+    
     private final GameWorldState state;
 
     private final AssetManager assetManager;
@@ -71,6 +73,9 @@ public class GameWorldView {
         
         // TERRAIN TEXTURE material
         terrain.mat_terrain = new Material(assetManager, "Common/MatDefs/Terrain/HeightBasedTerrain.j3md");
+        if (DEBUG) {
+            terrain.mat_terrain.getAdditionalRenderState().setWireframe(true);
+        }
 
         // Parameters to material:
         // regionXColorMap: X = 1..4 the texture that should be appliad to state X
@@ -143,18 +148,20 @@ public class GameWorldView {
 
         ground.addPreFilter(terrain.terrainDataProvider.iterate);
 
-        terrain.terrainGrid = new TerrainGrid("terrain", 16 + 1, 512 + 1, new FractalTileLoader(ground, 300f));
+        int patchSize = 32;
+        //terrain.terrainGrid = new TerrainGrid("terrain", 16 + 1, 512 + 1, new FractalTileLoader(ground, 300f));
+        terrain.terrainGrid = new FineTerrainGrid("terrain", patchSize + 1, 512 + 1, new FractalTileLoader(ground, 300f));
 
         terrain.terrainGrid.setMaterial(terrain.mat_terrain);
         //terrain.terrainGrid.setLocalTranslation(0, -200, 0);
         //terrain.terrainGrid.setLocalScale(2f, 1f, 2f);
         this.rootNode.attachChild(terrain.terrainGrid);
 
-        TerrainLodControl control = new TerrainGridLodControl(terrain.terrainGrid, camera);
-        control.setLodCalculator(new DistanceLodCalculator(32 + 1, 2.7f)); // patch size, and a multiplier
+        TerrainLodControl control = new FineTerrainGridLodControl(terrain.terrainGrid, camera);
+        control.setLodCalculator(new DistanceLodCalculator(patchSize + 1, 3.7f)); // patch size, and a multiplier
         terrain.terrainGrid.addControl(control);
 
-        final TerrainGrid terrainGrid = terrain.terrainGrid;
+        final FineTerrainGrid terrainGrid = terrain.terrainGrid;
         terrainGrid.addListener(new TerrainGridListener() {
 
             @Override
@@ -226,6 +233,7 @@ public class GameWorldView {
             }
 
         });
+        /**/
 
     }
 
