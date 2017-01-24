@@ -16,6 +16,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.terrain.geomipmap.*;
 import com.jme3.terrain.geomipmap.grid.FractalTileLoader;
 import com.jme3.terrain.geomipmap.lodcalc.DistanceLodCalculator;
+import com.jme3.terrain.geomipmap.lodcalc.LodCalculator;
 import com.jme3.terrain.noise.ShaderUtils;
 import com.jme3.terrain.noise.basis.FilteredBasis;
 import com.jme3.terrain.noise.filter.IterativeFilter;
@@ -35,7 +36,7 @@ import roadtrip.view.model.GameWorldState;
  */
 public class GameWorldView {
 
-    public static boolean DEBUG = false;//true;
+    public static boolean DEBUG = true;
     
     private final GameWorldState state;
 
@@ -157,10 +158,12 @@ public class GameWorldView {
         //terrain.terrainGrid.setLocalScale(2f, 1f, 2f);
         this.rootNode.attachChild(terrain.terrainGrid);
 
-        TerrainLodControl control = new FineTerrainGridLodControl(terrain.terrainGrid, camera);
-        control.setLodCalculator(new DistanceLodCalculator(patchSize + 1, 3.7f)); // patch size, and a multiplier
-        terrain.terrainGrid.addControl(control);
-
+        final TerrainLodControl lodControl = new FineTerrainGridLodControl(terrain.terrainGrid, camera);
+        lodControl.setLodCalculator(new DistanceLodCalculator(patchSize + 1, 3.7f)); // patch size, and a multiplier
+        terrain.terrainGrid.addControl(lodControl);
+        
+        final Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
+        
         final FineTerrainGrid terrainGrid = terrain.terrainGrid;
         terrainGrid.addListener(new TerrainGridListener() {
 
@@ -170,6 +173,7 @@ public class GameWorldView {
 
             @Override
             public void tileAttached(Vector3f cell, TerrainQuad quad) {
+                lodControl.forceUpdate();
                 while(quad.getControl(RigidBodyControl.class)!=null){
                     quad.removeControl(RigidBodyControl.class);
                 }
@@ -180,7 +184,8 @@ public class GameWorldView {
 
                 String quadObjectsNodeKey = getQuadObjectsNodeKey(quad);
                 Node objects = new Node(quadObjectsNodeKey);
-                populateQuadObjectsNode(quad, objects);
+                // TODO: fix
+                //populateQuadObjectsNode(quad, objects);
                 rootNode.attachChild(objects);
             }
 
@@ -189,7 +194,6 @@ public class GameWorldView {
                 ProceduralMapQuadBlock mapQuadBlock = state.proceduralMap.getMapQuadBlock(quad);
 
                 // Add map objects (for now - trees)
-                Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
                 //System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
                 //System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
                 for (MapObjectInstance mapObject : mapQuadBlock.getMapObjects()) {
@@ -202,7 +206,7 @@ public class GameWorldView {
                     if (control != null) {
                         modelInstance.addControl(control);
                         control.setPhysicsLocation(pos);
-                        physicsSpace.add(control);
+                        //physicsSpace.add(control);
                     }
                     objects.attachChild(modelInstance);
                 }

@@ -41,6 +41,7 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.LodControl;
 import com.jme3.scene.control.UpdateControl;
 import com.jme3.terrain.Terrain;
 import com.jme3.terrain.geomipmap.LRUCache;
@@ -122,10 +123,11 @@ public class FineTerrainGrid extends TerrainQuad {
     protected HeightMapGrid heightMapGrid;
     private TerrainGridTileLoader gridTileLoader;
     protected Vector3f[] quadIndex;
-    protected Set<TerrainGridListener> listeners = new HashSet<TerrainGridListener>();
+    protected Set<TerrainGridListener> listeners = new HashSet<>();
     protected Material material;
     //cache  needs to be 1 row (4 cells) larger than what we care is cached
-    protected LRUCache<Vector3f, TerrainQuad> cache = new LRUCache<Vector3f, TerrainQuad>(20);
+    protected LRUCache<Vector3f, TerrainQuad> cache = new LRUCache<>(
+            getSubdivisionsPerSide() * getSubdivisionsPerSide() + getSubdivisionsPerSide());
     protected int cellsLoaded = 0;
     protected int[] gridOffset;
     protected boolean runOnce = false;
@@ -133,6 +135,11 @@ public class FineTerrainGrid extends TerrainQuad {
 
     public int getSize() {
         return size;
+    }
+    
+    public int getSubdivisionsPerSide()
+    {
+        return 8;
     }
 
     protected class UpdateQuadCache implements Runnable {
@@ -153,9 +160,9 @@ public class FineTerrainGrid extends TerrainQuad {
          * neighbours).
          */
         public void run() {
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    int quadIdx = i * 4 + j;
+            for (int i = 0; i < getSubdivisionsPerSide(); i++) {
+                for (int j = 0; j < getSubdivisionsPerSide(); j++) {
+                    int quadIdx = i * getSubdivisionsPerSide() + j;
                     final Vector3f quadCell = location.add(quadIndex[quadIdx]);
                     TerrainQuad q = cache.get(quadCell);
                     if (q == null) {
@@ -221,20 +228,18 @@ public class FineTerrainGrid extends TerrainQuad {
     }
 
     protected boolean isCenter(int quadIndex) {
-        return quadIndex == 9 || quadIndex == 5 || quadIndex == 10 || quadIndex == 6;
+        // The only thing that is not a center for us here are the edges of the grid.
+        int w = getSubdivisionsPerSide();
+        // left / right edge
+        if (quadIndex % w == 0 || (quadIndex + 1) % w == 0) return false;
+        // top / down edge
+        if (quadIndex < w || quadIndex >= (w*w - w)) return false;
+        // center
+        return true;
     }
 
     protected int getQuadrant(int quadIndex) {
-        if (quadIndex == 5) {
-            return 1;
-        } else if (quadIndex == 9) {
-            return 2;
-        } else if (quadIndex == 6) {
-            return 3;
-        } else if (quadIndex == 10) {
-            return 4;
-        }
-        return 0; // error
+        return quadIndex + 1; // whatever, just not 0
     }
 
     public FineTerrainGrid(String name, int patchSize, int maxVisibleSize, Vector3f scale, TerrainGridTileLoader terrainQuadGrid,
@@ -268,8 +273,8 @@ public class FineTerrainGrid extends TerrainQuad {
 
     private void initData() {
         int maxVisibleSize = size;
-        this.quarterSize = maxVisibleSize >> 2;
-        this.quadSize = (maxVisibleSize + 1) >> 1;
+        this.quarterSize = maxVisibleSize / getSubdivisionsPerSide();
+        this.quadSize = (maxVisibleSize / getSubdivisionsPerSide()) + 1;
         this.totalSize = maxVisibleSize;
         this.gridOffset = new int[]{0, 0};
 
@@ -282,11 +287,14 @@ public class FineTerrainGrid extends TerrainQuad {
          *         |
          *         z
          */
-        this.quadIndex = new Vector3f[]{
-            new Vector3f(-1, 0, -1), new Vector3f(0, 0, -1), new Vector3f(1, 0, -1), new Vector3f(2, 0, -1),
-            new Vector3f(-1, 0, 0), new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), new Vector3f(2, 0, 0),
-            new Vector3f(-1, 0, 1), new Vector3f(0, 0, 1), new Vector3f(1, 0, 1), new Vector3f(2, 0, 1),
-            new Vector3f(-1, 0, 2), new Vector3f(0, 0, 2), new Vector3f(1, 0, 2), new Vector3f(2, 0, 2)};
+        // generate a grid of quad positions
+        this.quadIndex = new Vector3f[getSubdivisionsPerSide() * getSubdivisionsPerSide()];
+        int i = 0;
+        for (int z = -getSubdivisionsPerSide() / 2 + 1; z <= getSubdivisionsPerSide() / 2; z++) {
+            for (int x = -getSubdivisionsPerSide() / 2 + 1; x <= getSubdivisionsPerSide() / 2; x++) {
+                quadIndex[i++] = new Vector3f(x, 0, z);
+            }
+        }
 
     }
 
@@ -357,7 +365,7 @@ public class FineTerrainGrid extends TerrainQuad {
     }
     
     protected void removeQuad(TerrainQuad q) {
-        if (q != null && ( (q.getQuadrant() > 0 && q.getQuadrant()<5) || q.getParent() != null) ) {
+        if (q != null && ( q.getParent() != null) ) {
             for (TerrainGridListener l : listeners) {
                 l.tileDetached(getTileCell(q.getWorldTranslation()), q);
             }
@@ -372,7 +380,6 @@ public class FineTerrainGrid extends TerrainQuad {
      * @param shifted quads are still attached to the parent and don't need to re-load
      */
     protected void attachQuadAt(TerrainQuad q, int quadrant, Vector3f quadCell, boolean shifted) {
-        
         q.setQuadrant((short) quadrant);
         if (!shifted)
             this.attachChild(q);
@@ -386,7 +393,6 @@ public class FineTerrainGrid extends TerrainQuad {
             }
         }
         updateModelBound();
-        
     }
 
     
@@ -412,17 +418,17 @@ public class FineTerrainGrid extends TerrainQuad {
         }
 
         int xMin = 0;
-        int xMax = 4;
+        int xMax = getSubdivisionsPerSide();
         int yMin = 0;
-        int yMax = 4;
+        int yMax = getSubdivisionsPerSide();
         if (dx == -1) { // camera moved to -X direction
-            xMax = 3;
+            xMax = getSubdivisionsPerSide() - 1;
         } else if (dx == 1) { // camera moved to +X direction
             xMin = 1;
         }
 
         if (dy == -1) { // camera moved to -Y direction
-            yMax = 3;
+            yMax = getSubdivisionsPerSide() - 1;
         } else if (dy == 1) { // camera moved to +Y direction
             yMin = 1;
         }
@@ -432,7 +438,7 @@ public class FineTerrainGrid extends TerrainQuad {
         // either way in one of the axes (say X or Y axis) then they are all touched.
         for (int i = yMin; i < yMax; i++) {
             for (int j = xMin; j < xMax; j++) {
-                cache.get(camCell.add(quadIndex[i * 4 + j]));
+                cache.get(camCell.add(quadIndex[i * getSubdivisionsPerSide() + j]));
             }
         }
         
