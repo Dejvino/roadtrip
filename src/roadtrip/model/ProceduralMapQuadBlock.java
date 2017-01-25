@@ -32,7 +32,7 @@ public class ProceduralMapQuadBlock extends AbstractProceduralBlock
 		Random quadRand = getBlockRandom();
 		Vector2f prevPos = null;
 		Vector2f quadPos = new Vector2f(terrainQuad.getLocalTranslation().x, terrainQuad.getLocalTranslation().z);
-		for (int i = 0; i < quadRand.nextInt(10000); i++) {
+		for (int i = 0; i < quadRand.nextInt(100); i++) {
 			Vector2f pos;
 			if (prevPos == null || quadRand.nextFloat() < 0.2f) {
 				pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)

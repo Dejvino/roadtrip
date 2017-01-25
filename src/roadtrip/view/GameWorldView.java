@@ -36,7 +36,7 @@ import roadtrip.view.model.GameWorldState;
  */
 public class GameWorldView {
 
-    public static boolean DEBUG = true;
+    public static boolean DEBUG = false;//true;
     
     private final GameWorldState state;
 
@@ -184,8 +184,7 @@ public class GameWorldView {
 
                 String quadObjectsNodeKey = getQuadObjectsNodeKey(quad);
                 Node objects = new Node(quadObjectsNodeKey);
-                // TODO: fix
-                //populateQuadObjectsNode(quad, objects);
+                populateQuadObjectsNode(quad, objects);
                 rootNode.attachChild(objects);
             }
 

@@ -421,15 +421,15 @@ public class FineTerrainGrid extends TerrainQuad {
         int xMax = getSubdivisionsPerSide();
         int yMin = 0;
         int yMax = getSubdivisionsPerSide();
-        if (dx == -1) { // camera moved to -X direction
+        if (dx < 0) { // camera moved to -X direction
             xMax = getSubdivisionsPerSide() - 1;
-        } else if (dx == 1) { // camera moved to +X direction
+        } else if (dx > 0) { // camera moved to +X direction
             xMin = 1;
         }
 
-        if (dy == -1) { // camera moved to -Y direction
+        if (dy < 0) { // camera moved to -Y direction
             yMax = getSubdivisionsPerSide() - 1;
-        } else if (dy == 1) { // camera moved to +Y direction
+        } else if (dy > 0) { // camera moved to +Y direction
             yMin = 1;
         }
 

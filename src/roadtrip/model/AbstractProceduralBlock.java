@@ -1,5 +1,6 @@
 package roadtrip.model;
 
+import com.jme3.terrain.geomipmap.LRUCache;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Random;
@@ -11,6 +12,8 @@ public abstract class AbstractProceduralBlock implements ProceduralBlock
 {
 	private long seed;
 
+        private LRUCache<String, ProceduralBlock> subBlocksCache = new LRUCache<>(getSubBlocksCacheSize());
+        
 	public AbstractProceduralBlock(long seed)
 	{
 		this.seed = seed;
@@ -38,13 +41,24 @@ public abstract class AbstractProceduralBlock implements ProceduralBlock
 	public <T extends ProceduralBlock> T getSubBlock(String subBlockKey, Class<T> subBlockClass)
 	{
 		if (subBlockClass == null) throw new NullPointerException("subBlockClass");
+                T result = (T) subBlocksCache.get(subBlockKey);
+                if (result != null) {
+                    return result;
+                }
 		try {
 			Constructor<T> constructor = subBlockClass.getConstructor(Long.TYPE);
-			return constructor.newInstance(getSubBlockSeed(subBlockKey));
+			result = constructor.newInstance(getSubBlockSeed(subBlockKey));
+                        subBlocksCache.put(subBlockKey, result);
+                        return result;
 		} catch (NoSuchMethodException e) {
 			throw new IllegalArgumentException("Class " + subBlockClass + " does not have the default constructor with a single 'long' parameter.", e);
 		} catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
 			throw new IllegalArgumentException("Unable to instantiate sub-block.", e);
 		}
 	}
+
+    public int getSubBlocksCacheSize()
+    {
+        return 8;
+    }
 }
