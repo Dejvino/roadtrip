@@ -77,6 +77,8 @@ public class GameWorldView {
         if (DEBUG) {
             terrain.mat_terrain.getAdditionalRenderState().setWireframe(true);
         }
+        
+        float heightScale = 100f;
 
         // Parameters to material:
         // regionXColorMap: X = 1..4 the texture that should be appliad to state X
@@ -96,17 +98,18 @@ public class GameWorldView {
         Texture rock = this.assetManager.loadTexture("Textures/solid-stone.png");
         rock.setWrap(Texture.WrapMode.Repeat);
 
+        float modif = (heightScale / 100f) / 3f;
         terrain.mat_terrain.setTexture("region1ColorMap", dirt);
-        terrain.mat_terrain.setVector3("region1", new Vector3f(0, 80, terrain.dirtScale));
+        terrain.mat_terrain.setVector3("region1", new Vector3f(0, 80 * modif, terrain.dirtScale));
 
         terrain.mat_terrain.setTexture("region2ColorMap", grass);
-        terrain.mat_terrain.setVector3("region2", new Vector3f(100, 160, terrain.grassScale));
+        terrain.mat_terrain.setVector3("region2", new Vector3f(100 * modif, 160 * modif, terrain.grassScale));
 
         terrain.mat_terrain.setTexture("region3ColorMap", rock);
-        terrain.mat_terrain.setVector3("region3", new Vector3f(190, 240, terrain.rockScale));
+        terrain.mat_terrain.setVector3("region3", new Vector3f(190 * modif, 240 * modif, terrain.rockScale));
 
         terrain.mat_terrain.setTexture("region4ColorMap", dirt);
-        terrain.mat_terrain.setVector3("region4", new Vector3f(250, 350, terrain.dirtScale));
+        terrain.mat_terrain.setVector3("region4", new Vector3f(250 * modif, 350 * modif, terrain.dirtScale));
 
         terrain.mat_terrain.setTexture("slopeColorMap", rock);
         terrain.mat_terrain.setFloat("slopeTileFactor", 32);
@@ -151,7 +154,7 @@ public class GameWorldView {
 
         int patchSize = 32;
         //terrain.terrainGrid = new TerrainGrid("terrain", 16 + 1, 512 + 1, new FractalTileLoader(ground, 300f));
-        terrain.terrainGrid = new FineTerrainGrid("terrain", patchSize + 1, 512 + 1, new FractalTileLoader(ground, 300f));
+        terrain.terrainGrid = new FineTerrainGrid("terrain", patchSize + 1, 512 + 1, new FractalTileLoader(ground, heightScale));
 
         terrain.terrainGrid.setMaterial(terrain.mat_terrain);
         //terrain.terrainGrid.setLocalTranslation(0, -200, 0);
