@@ -10,6 +10,8 @@ import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.*;
+import com.jme3.post.FilterPostProcessor;
+import com.jme3.post.filters.DepthOfFieldFilter;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -53,6 +55,9 @@ public class RoadTrip extends GameApplication implements ActionListener {
 
     int score = 0;
 
+    private FilterPostProcessor fpp;
+    DepthOfFieldFilter dofFilter;
+    
     @Override
     public void initializeGame() {
         super.initializeGame();
@@ -101,6 +106,16 @@ public class RoadTrip extends GameApplication implements ActionListener {
         chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);
         chaseCam.setSmoothMotion(true);
+        
+        fpp = new FilterPostProcessor(assetManager);
+        //fpp.setNumSamples(4);
+
+        dofFilter = new DepthOfFieldFilter();
+        dofFilter.setFocusRange(5f);
+        dofFilter.setFocusDistance(6f);
+        dofFilter.setBlurScale(0.6f);
+        fpp.addFilter(dofFilter);
+        viewPort.addProcessor(fpp);
     }
 
 	protected void addGameMenu()
@@ -203,6 +218,10 @@ public class RoadTrip extends GameApplication implements ActionListener {
         Vector3f playerLocation = player.node.getWorldTranslation();
         Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
 
+        float focusDist = cam.getLocation().distance(player.node.getWorldTranslation()) / 10f;
+        dofFilter.setFocusDistance(focusDist * 1.1f);
+        dofFilter.setFocusRange(focusDist * 0.9f);
+        
         for (VehicleNode vehicle : gameWorldState.vehicles) {
             vehicle.update(tpf);
         }

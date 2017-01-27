@@ -12,6 +12,8 @@ import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.post.FilterPostProcessor;
+import com.jme3.post.filters.DepthOfFieldFilter;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -47,7 +49,7 @@ public class GameWorldView {
     private final Camera camera;
     private final Node rootNode;
     private final PhysicsSpace physicsSpace;
-
+    
     public TerrainView terrain = new TerrainView(new TerrainDataProvider());
 
     public GameWorldView(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode, PhysicsSpace physicsSpace) {
@@ -171,12 +173,13 @@ public class GameWorldView {
         
         final Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
         final Spatial houseModel = assetManager.loadModel("Models/house1.j3o");
+        final Spatial grassModel = assetManager.loadModel("Models/grass.j3o");
         
         final FineTerrainGrid terrainGrid = terrain.terrainGrid;
         terrainGrid.addListener(new TerrainGridListener() {
 
             @Override
-            public void gridMoved(Vector3f newCenter) {
+            public void gridMoved(Vector3f newCenter) {   
             }
 
             @Override
@@ -240,8 +243,27 @@ public class GameWorldView {
                         modelPhysics.isActive();
                         modelInstance.addControl(modelPhysics);
                         modelPhysics.setPhysicsLocation(pos);
-                        physicsSpace.add(modelPhysics);
+                        //physicsSpace.add(modelPhysics);
                     }
+                    objects.attachChild(modelInstance);
+                }
+                
+                for (int i = 0; i < rand.nextInt(10000); i++) {
+                    Vector3f pos = new Vector3f((rand.nextFloat() - 0.5f) * 128f, 0f, (rand.nextFloat() - 0.5f) * 128f).addLocal(quad.getWorldTranslation());
+                    pos.addLocal(0f, getHeight(quad, pos), 0f);
+                    Vector3f scale = Vector3f.UNIT_XYZ;
+                    Spatial modelInstance;
+                    switch ("grass") {
+                        case "grass":
+                            modelInstance = grassModel.clone();
+                            float s = 0.2f + rand.nextFloat() * 2f;
+                            scale = new Vector3f(s, s, s);
+                            break;
+                        default:
+                            throw new RuntimeException("Unhandled object type");
+                    }
+                    modelInstance.setLocalTranslation(pos);
+                    modelInstance.setLocalScale(scale);
                     objects.attachChild(modelInstance);
                 }
             }

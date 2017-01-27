@@ -1,0 +1,23 @@
+Material MyMaterial : Common/MatDefs/Light/Lighting.j3md {
+    MaterialParameters {
+        DiffuseMap : Models/grass.png
+        GlowColor : 0.0 0.0 0.0 1.0
+        Specular : 0.0 0.0 0.0 1.0
+        Diffuse : 0.9258238 0.9258238 0.9258238 1.0
+        UseMaterialColors : true
+        ParallaxHeight : 0.05
+        Ambient : 0.9258238 0.9258238 0.9258238 1.0
+        Shininess : 12.5
+    }
+    AdditionalRenderState {
+      FaceCull Off
+      Wireframe Off
+      DepthWrite On
+      PolyOffset 0.0 0.0
+      AlphaTestFalloff 0.0
+      Blend PremultAlpha
+      PointSprite Off
+      ColorWrite On
+      DepthTest On
+    }
+}
