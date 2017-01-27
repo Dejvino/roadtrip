@@ -193,7 +193,6 @@ public class GameWorldView {
                 String quadObjectsNodeKey = getQuadObjectsNodeKey(quad);
                 Node objects = new Node(quadObjectsNodeKey);
                 populateQuadObjectsNode(quad, objects);
-                System.out.println("Add quad " + quad.getName());
                 rootNode.attachChild(objects);
             }
 
@@ -254,7 +253,6 @@ public class GameWorldView {
                     quad.removeControl(RigidBodyControl.class);
                 }
                 removeQuadObjectsNode(quad);
-                System.out.println("Del quad " + quad.getName());
             }
 
             protected void removeQuadObjectsNode(TerrainQuad quad)
