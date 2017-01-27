@@ -243,7 +243,7 @@ public class GameWorldView {
                         modelPhysics.isActive();
                         modelInstance.addControl(modelPhysics);
                         modelPhysics.setPhysicsLocation(pos);
-                        //physicsSpace.add(modelPhysics);
+                        physicsSpace.add(modelPhysics);
                     }
                     objects.attachChild(modelInstance);
                 }

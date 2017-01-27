@@ -35,7 +35,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
         app.start();
     }
 
-    public static boolean DEBUG = /*false;/*/true;/**/
+    public static boolean DEBUG = !true;
 
     private GameWorldState gameWorldState;
     private GameWorldView gameWorldView;
