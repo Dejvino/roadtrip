@@ -2,6 +2,7 @@ package roadtrip.view;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.bullet.PhysicsSpace;
+import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.collision.shapes.ConeCollisionShape;
 import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
@@ -9,6 +10,7 @@ import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
@@ -26,6 +28,7 @@ import com.jme3.terrain.noise.filter.SmoothFilter;
 import com.jme3.terrain.noise.fractal.FractalSum;
 import com.jme3.terrain.noise.modulator.NoiseModulator;
 import com.jme3.texture.Texture;
+import java.util.Random;
 import roadtrip.model.MapObjectInstance;
 import roadtrip.model.ProceduralMapQuadBlock;
 import roadtrip.model.TerrainDataProvider;
@@ -78,7 +81,7 @@ public class GameWorldView {
             terrain.mat_terrain.getAdditionalRenderState().setWireframe(true);
         }
         
-        float heightScale = 100f;
+        float heightScale = 400f;
 
         // Parameters to material:
         // regionXColorMap: X = 1..4 the texture that should be appliad to state X
@@ -117,10 +120,10 @@ public class GameWorldView {
         terrain.mat_terrain.setFloat("terrainSize", 513);
 
         terrain.terrainDataProvider.base = new FractalSum();
-        terrain.terrainDataProvider.base.setRoughness(0.7f);
+        terrain.terrainDataProvider.base.setRoughness(0.6f);
         terrain.terrainDataProvider.base.setFrequency(1.0f);
         terrain.terrainDataProvider.base.setAmplitude(1.0f);
-        terrain.terrainDataProvider.base.setLacunarity(2.12f);
+        terrain.terrainDataProvider.base.setLacunarity(4.12f);
         terrain.terrainDataProvider.base.setOctaves(8);
         terrain.terrainDataProvider.base.setScale(0.02125f);
         terrain.terrainDataProvider.base.addModulator(new NoiseModulator() {
@@ -142,7 +145,7 @@ public class GameWorldView {
 
         terrain.terrainDataProvider.smooth = new SmoothFilter();
         terrain.terrainDataProvider.smooth.setRadius(1);
-        terrain.terrainDataProvider.smooth.setEffect(0.7f);
+        terrain.terrainDataProvider.smooth.setEffect(0.3f);
 
         terrain.terrainDataProvider.iterate = new IterativeFilter();
         terrain.terrainDataProvider.iterate.addPreFilter(terrain.terrainDataProvider.perturb);
@@ -152,13 +155,14 @@ public class GameWorldView {
 
         ground.addPreFilter(terrain.terrainDataProvider.iterate);
 
-        int patchSize = 32;
+        int patchSize = 16;
+        Vector3f terrainScale = new Vector3f(8f, 1f, 8f);
         //terrain.terrainGrid = new TerrainGrid("terrain", 16 + 1, 512 + 1, new FractalTileLoader(ground, 300f));
-        terrain.terrainGrid = new FineTerrainGrid("terrain", patchSize + 1, 512 + 1, new FractalTileLoader(ground, heightScale));
+        terrain.terrainGrid = new FineTerrainGrid("terrain", patchSize + 1, 128 + 1, terrainScale, new FractalTileLoader(ground, heightScale));
 
         terrain.terrainGrid.setMaterial(terrain.mat_terrain);
         //terrain.terrainGrid.setLocalTranslation(0, -200, 0);
-        //terrain.terrainGrid.setLocalScale(2f, 1f, 2f);
+        terrain.terrainGrid.setLocalScale(terrainScale);
         this.rootNode.attachChild(terrain.terrainGrid);
 
         final TerrainLodControl lodControl = new FineTerrainGridLodControl(terrain.terrainGrid, camera);
@@ -166,6 +170,7 @@ public class GameWorldView {
         terrain.terrainGrid.addControl(lodControl);
         
         final Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
+        final Spatial houseModel = assetManager.loadModel("Models/house1.j3o");
         
         final FineTerrainGrid terrainGrid = terrain.terrainGrid;
         terrainGrid.addListener(new TerrainGridListener() {
@@ -188,6 +193,7 @@ public class GameWorldView {
                 String quadObjectsNodeKey = getQuadObjectsNodeKey(quad);
                 Node objects = new Node(quadObjectsNodeKey);
                 populateQuadObjectsNode(quad, objects);
+                System.out.println("Add quad " + quad.getName());
                 rootNode.attachChild(objects);
             }
 
@@ -195,24 +201,50 @@ public class GameWorldView {
             {
                 ProceduralMapQuadBlock mapQuadBlock = state.proceduralMap.getMapQuadBlock(quad);
 
-                // Add map objects (for now - trees)
-                //System.out.println("Grid @ " + terrainGrid.getLocalTranslation() + " s " + terrainGrid.getLocalScale());
-                //System.out.println("Quad " + quad.getName() + " @ " + quad.getLocalTranslation());
+                /*/ DEBUG pole in the middle of a quad
+                Spatial m = treeModel.clone();
+                m.setLocalTranslation(quad.getWorldTranslation().add(new Vector3f(0f, getHeight(quad, quad.getWorldTranslation()), 0f)));
+                m.setLocalScale(new Vector3f(1f, 20f, 1f));
+                objects.attachChild(m);
+                /**/
+                
+                // Add map objects
+                Random rand = mapQuadBlock.getBlockRandom();
                 for (MapObjectInstance mapObject : mapQuadBlock.getMapObjects()) {
                     Vector3f pos = mapObject.getPosition();
-                    Spatial modelInstance = treeModel.clone();
+                    Vector3f scale = Vector3f.UNIT_XYZ;
+                    Vector3f boxHalf = Vector3f.UNIT_XYZ;
+                    Spatial modelInstance;
+                    RigidBodyControl modelPhysics;
+                    switch (mapObject.getType()) {
+                        case "tree":
+                            modelInstance = treeModel.clone();
+                            float s = 0.2f + rand.nextFloat() * 5f;
+                            scale = new Vector3f(s, s, s);
+                            boxHalf = new Vector3f(s * 0.2f, s * 3f, s * 0.2f);
+                            modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
+                            break;
+                        case "house":
+                            modelInstance = houseModel.clone();
+                            boxHalf = new Vector3f(2f + rand.nextFloat() * 10f, 2f + rand.nextFloat() * 10f, 2f + rand.nextFloat() * 10f);
+                            scale = boxHalf;
+                            modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
+                            break;
+                        default:
+                            throw new RuntimeException("Unhandled object type: " + mapObject.getType());
+                    }
                     modelInstance.setLocalTranslation(pos);
+                    modelInstance.setLocalScale(scale);
                     // TODO: physics from the model and not hard-coded
                     //RigidBodyControl control = treeInstance.getControl(RigidBodyControl.class);
-                    RigidBodyControl control = new RigidBodyControl(new ConeCollisionShape(1f, 5f), 0f);
-                    if (control != null) {
-                        modelInstance.addControl(control);
-                        control.setPhysicsLocation(pos);
-                        //physicsSpace.add(control);
+                    if (modelPhysics != null) {
+                        modelPhysics.isActive();
+                        modelInstance.addControl(modelPhysics);
+                        modelPhysics.setPhysicsLocation(pos);
+                        physicsSpace.add(modelPhysics);
                     }
                     objects.attachChild(modelInstance);
                 }
-                //objects.setLocalTranslation(terrainGrid.getWorldTranslation());
             }
 
             @Override
@@ -222,6 +254,7 @@ public class GameWorldView {
                     quad.removeControl(RigidBodyControl.class);
                 }
                 removeQuadObjectsNode(quad);
+                System.out.println("Del quad " + quad.getName());
             }
 
             protected void removeQuadObjectsNode(TerrainQuad quad)
@@ -238,6 +271,10 @@ public class GameWorldView {
                 return "Objects-" + quad.getName();
             }
 
+            private float getHeight(TerrainQuad quad, Vector3f pos)
+            {
+                return quad.getHeight(new Vector2f(pos.x, pos.z));
+            }
         });
         /**/
 

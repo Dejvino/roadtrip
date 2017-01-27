@@ -17,8 +17,6 @@ import java.util.Random;
  */
 public class ProceduralMapQuadBlock extends AbstractProceduralBlock
 {
-	protected float cellSize = 64 * 2f * 2f; /* terrainGrid.getPatchSize() * terrainGrid.getLocalScale().x * 2f */
-
 	private List<MapObjectInstance> mapObjects;
 
 	public ProceduralMapQuadBlock(long seed)
@@ -28,23 +26,30 @@ public class ProceduralMapQuadBlock extends AbstractProceduralBlock
 
 	public void initialize(TerrainQuad terrainQuad)
 	{
+                float cellSize = terrainQuad.getPatchSize() * 8f * terrainQuad.getLocalScale().x * 2f;
 		mapObjects = new LinkedList<>();
 		Random quadRand = getBlockRandom();
 		Vector2f prevPos = null;
-		Vector2f quadPos = new Vector2f(terrainQuad.getLocalTranslation().x, terrainQuad.getLocalTranslation().z);
-		for (int i = 0; i < quadRand.nextInt(100); i++) {
+		Vector2f quadPos = new Vector2f(terrainQuad.getWorldTranslation().x, terrainQuad.getWorldTranslation().z);
+		for (int i = 0; i < quadRand.nextInt(terrainQuad.getPatchSize() * terrainQuad.getPatchSize()); i++) {
 			Vector2f pos;
 			if (prevPos == null || quadRand.nextFloat() < 0.2f) {
 				pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
 						.addLocal(quadPos);
 			} else {
-				pos = new Vector2f((quadRand.nextFloat() - 0.5f) * 20f, (quadRand.nextFloat() - 0.5f) * 20f)
+				pos = new Vector2f((quadRand.nextFloat() - 0.5f) * (cellSize / 10f), (quadRand.nextFloat() - 0.5f) * (cellSize / 10f))
 						.addLocal(prevPos);
 			}
 			prevPos = pos;
 			float height = terrainQuad.getHeight(pos);
+                        String type;
+                        if (quadRand.nextInt(10) == 0) {
+                            type = "house";
+                        } else {
+                            type = "tree";
+                        }
 			Vector3f location = new Vector3f(pos.x, height, pos.y);
-			mapObjects.add(new MapObjectInstance(location));
+			mapObjects.add(new MapObjectInstance(type, location));
 		}
 	}
 

@@ -8,10 +8,12 @@ import com.jme3.math.Vector3f;
 public class MapObjectInstance
 {
 	private Vector3f position;
+        private String type;
 
-	public MapObjectInstance(Vector3f position)
+	public MapObjectInstance(String type, Vector3f position)
 	{
-		this.position = new Vector3f(position);
+            this.type = type;
+            this.position = new Vector3f(position);
 	}
 
 	public Vector3f getPosition()
@@ -23,4 +25,8 @@ public class MapObjectInstance
 	{
 		this.position = new Vector3f(position);
 	}
+
+    public String getType() {
+        return type;
+    }
 }
