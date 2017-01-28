@@ -5,36 +5,50 @@ A game about a journey involving vehicles and obstacles.
 
 ## Status
 ### DONE
-* Physics-based vehicles
-* One car model
-* Driving controls (WASDX)
-* Enter / Exit a car (Enter)
-* Camera following the player
-* Endless, grid-based hilly ground
-* Collidable objects - static and dynamic
-* People
-* Walking around (Player & NPCs)
-* Sounds - car engine, wheels & slips
-* Target location
-* Main menu
-* Score
+* Walking
+** Enter / Exit a car (Enter)
+* Driving
+** Keyboard controls (WASDX)
+** Physics-based vehicles
+** 1 model, 2 debugs
+* Map
+** Endless, grid-based hilly ground
+** Procedurally generated map contents
+** Collidable objects - static and dynamic
+** People
+* Objectives
+** Target location
+** Score
+* Sounds
+** Car engine
+** Wheel rolling
+** Wheel slips
+* Camera
+** 3rd person view (following the player)
+* Input
+** Keyboard
+** Game menu
 
 ### TODO
+#### Stage 0 :: Prototype
+* done
+#### Stage 1 :: Core Game
+* Joystick controls
+* FPV camera
+* Main Menu
 * Winning condition (location)
-* Menu - statistics, save / load, credits
-* Sounds - crashes
 * Health indicator
 * Persistent content on terrain blocks
-* Generated terrain props
 * NPC AI
 * Enemy NPCs - punching, shooting
 * Interacting with the environment
+#### Stage 2 :: Filled Game
+* Roadblocks
+* Menu - statistics, save / load, credits
 * Car models
 * Scenery models
-* Roadblocks
-* FPV camera
-* Outro
+* Intro, Outro
+#### Stage 3 :: Overflowing Game
 * Stealth
 * Clothing
 * Car customization
-
