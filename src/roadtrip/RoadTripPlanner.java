@@ -18,7 +18,7 @@ public class RoadTripPlanner extends SimpleApplication {
         app.start();
     }
 
-    public static boolean DEBUG = /*false;/*/true;/**/
+    public static boolean DEBUG = !true;/**/
 
     protected BulletAppState bulletAppState;
     private GameWorldState gameWorldState;

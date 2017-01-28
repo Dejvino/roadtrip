@@ -264,6 +264,7 @@ public class GameWorldView {
                     }
                     modelInstance.setLocalTranslation(pos);
                     modelInstance.setLocalScale(scale);
+                    modelInstance.addControl(new HideControl());
                     objects.attachChild(modelInstance);
                 }
             }
