@@ -20,6 +20,7 @@ import roadtrip.model.VehicleInstance;
 import roadtrip.view.CompassNode;
 import roadtrip.view.GameMenuNode;
 import roadtrip.view.GameWorldView;
+import roadtrip.view.HideControl;
 import roadtrip.view.VehicleNode;
 import roadtrip.view.model.GameWorldState;
 import roadtrip.view.model.Player;
@@ -82,7 +83,13 @@ public class RoadTrip extends GameApplication implements ActionListener {
         rootNode.addLight(al);
 
         gameWorldState = new GameWorldState(1L);
-        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode, getPhysicsSpace());
+        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode, getPhysicsSpace(), new HideControl.TargetProvider() {
+
+            @Override
+            public Vector3f getTarget() {
+                return player.node.getWorldTranslation();
+            }
+        });
 
         addCar();
         addCar();

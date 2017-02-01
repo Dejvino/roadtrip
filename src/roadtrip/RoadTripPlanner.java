@@ -5,6 +5,7 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.math.*;
 import roadtrip.view.GameWorldView;
+import roadtrip.view.HideControl;
 import roadtrip.view.model.GameWorldState;
 
 /**
@@ -37,7 +38,13 @@ public class RoadTripPlanner extends SimpleApplication {
         bulletAppState.setDebugEnabled(DEBUG);
         
         gameWorldState = new GameWorldState(1L);
-        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode, getPhysicsSpace());
+        gameWorldView = GameWorldView.create(gameWorldState, assetManager, cam, rootNode, getPhysicsSpace(), new HideControl.TargetProvider() {
+
+            @Override
+            public Vector3f getTarget() {
+                return cam.getLocation();
+            }
+        });
         
         flyCam.setMoveSpeed(300f);
         cam.setLocation(new Vector3f(0, 200f, 0));

@@ -15,8 +15,10 @@ import com.jme3.math.Vector3f;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.filters.DepthOfFieldFilter;
 import com.jme3.renderer.Camera;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.shape.Box;
 import com.jme3.terrain.geomipmap.*;
 import com.jme3.terrain.geomipmap.grid.FractalTileLoader;
 import com.jme3.terrain.geomipmap.lodcalc.DistanceLodCalculator;
@@ -35,6 +37,7 @@ import roadtrip.model.MapObjectInstance;
 import roadtrip.model.ProceduralMapQuadBlock;
 import roadtrip.model.TerrainDataProvider;
 import roadtrip.view.model.GameWorldState;
+import roadtrip.view.model.Player;
 
 /**
  * Created by dejvino on 14.01.2017.
@@ -42,26 +45,32 @@ import roadtrip.view.model.GameWorldState;
 public class GameWorldView {
 
     public static boolean DEBUG = false;//true;
-    
+
     private final GameWorldState state;
 
     private final AssetManager assetManager;
     private final Camera camera;
     private final Node rootNode;
     private final PhysicsSpace physicsSpace;
+    private final HideControl.TargetProvider targetProvider;
     
     public TerrainView terrain = new TerrainView(new TerrainDataProvider());
 
-    public GameWorldView(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode, PhysicsSpace physicsSpace) {
+    public GameWorldView(GameWorldState gameWorldState, AssetManager assetManager,
+            Camera camera, Node rootNode, PhysicsSpace physicsSpace,
+            HideControl.TargetProvider targetProvider) {
         this.state = gameWorldState;
         this.assetManager = assetManager;
         this.camera = camera;
         this.rootNode = rootNode;
         this.physicsSpace = physicsSpace;
+        this.targetProvider = targetProvider;
     }
 
-    public static GameWorldView create(GameWorldState gameWorldState, AssetManager assetManager, Camera camera, Node rootNode, PhysicsSpace physicsSpace) {
-        GameWorldView gameWorldView = new GameWorldView(gameWorldState, assetManager, camera, rootNode, physicsSpace);
+    public static GameWorldView create(GameWorldState gameWorldState,
+            AssetManager assetManager, Camera camera, Node rootNode,
+            PhysicsSpace physicsSpace, HideControl.TargetProvider targetProvider) {
+        GameWorldView gameWorldView = new GameWorldView(gameWorldState, assetManager, camera, rootNode, physicsSpace, targetProvider);
         gameWorldView.initialize();
         return gameWorldView;
     }
@@ -95,28 +104,27 @@ public class GameWorldView {
         // slopeColorMap: the texture to be used for cliffs, and steep mountain sites
         // slopeTileFactor: the texture scale for slopes
         // terrainSize: the total size of the terrain (used for scaling the texture)
-        // GRASS texture
-        Texture grass = this.assetManager.loadTexture("Textures/solid-grass.png");
-        grass.setWrap(Texture.WrapMode.Repeat);
-        Texture dirt = this.assetManager.loadTexture("Textures/solid-road.png");
-        dirt.setWrap(Texture.WrapMode.Repeat);
-        Texture rock = this.assetManager.loadTexture("Textures/solid-stone.png");
-        rock.setWrap(Texture.WrapMode.Repeat);
+        Texture textureMid = this.assetManager.loadTexture("Textures/map-mid.png");
+        textureMid.setWrap(Texture.WrapMode.Repeat);
+        Texture textureLow = this.assetManager.loadTexture("Textures/map-low.png");
+        textureLow.setWrap(Texture.WrapMode.Repeat);
+        Texture textureHigh = this.assetManager.loadTexture("Textures/map-high.png");
+        textureHigh.setWrap(Texture.WrapMode.Repeat);
 
         float modif = (heightScale / 100f) / 3f;
-        terrain.mat_terrain.setTexture("region1ColorMap", dirt);
-        terrain.mat_terrain.setVector3("region1", new Vector3f(0, 80 * modif, terrain.dirtScale));
+        terrain.mat_terrain.setTexture("region1ColorMap", textureLow);
+        terrain.mat_terrain.setVector3("region1", new Vector3f(0, 80 * modif, terrain.texLowScale));
 
-        terrain.mat_terrain.setTexture("region2ColorMap", grass);
-        terrain.mat_terrain.setVector3("region2", new Vector3f(100 * modif, 160 * modif, terrain.grassScale));
+        terrain.mat_terrain.setTexture("region2ColorMap", textureMid);
+        terrain.mat_terrain.setVector3("region2", new Vector3f(100 * modif, 160 * modif, terrain.texMidScale));
 
-        terrain.mat_terrain.setTexture("region3ColorMap", rock);
-        terrain.mat_terrain.setVector3("region3", new Vector3f(190 * modif, 240 * modif, terrain.rockScale));
+        terrain.mat_terrain.setTexture("region3ColorMap", textureHigh);
+        terrain.mat_terrain.setVector3("region3", new Vector3f(190 * modif, 240 * modif, terrain.texHighScale));
 
-        terrain.mat_terrain.setTexture("region4ColorMap", dirt);
-        terrain.mat_terrain.setVector3("region4", new Vector3f(250 * modif, 350 * modif, terrain.dirtScale));
+        terrain.mat_terrain.setTexture("region4ColorMap", textureLow);
+        terrain.mat_terrain.setVector3("region4", new Vector3f(250 * modif, 350 * modif, terrain.texLowScale));
 
-        terrain.mat_terrain.setTexture("slopeColorMap", rock);
+        terrain.mat_terrain.setTexture("slopeColorMap", textureHigh);
         terrain.mat_terrain.setFloat("slopeTileFactor", 32);
 
         terrain.mat_terrain.setFloat("terrainSize", 513);
@@ -174,6 +182,13 @@ public class GameWorldView {
         final Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
         final Spatial houseModel = assetManager.loadModel("Models/house1.j3o");
         final Spatial grassModel = assetManager.loadModel("Models/grass.j3o");
+        
+        Material rockMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        rockMat.setColor("Color",  ColorRGBA.Gray);
+        Geometry rockGeom = new Geometry("rock", new Box(1f, 1f, 1f));
+        rockGeom.setMaterial(rockMat);
+        final Node rockModel = new Node("rockNode");
+        rockModel.attachChild(rockGeom);
         
         final FineTerrainGrid terrainGrid = terrain.terrainGrid;
         terrainGrid.addListener(new TerrainGridListener() {
@@ -248,15 +263,24 @@ public class GameWorldView {
                     objects.attachChild(modelInstance);
                 }
                 
-                for (int i = 0; i < rand.nextInt(10000); i++) {
-                    Vector3f pos = new Vector3f((rand.nextFloat() - 0.5f) * 128f, 0f, (rand.nextFloat() - 0.5f) * 128f).addLocal(quad.getWorldTranslation());
+                int w = 128;
+                for (int i = 0; i < w*w; i++) {
+                    int x = i % w;
+                    int z = i / w;
+                    if (((x % 8) + (z % 8)) != 0) continue;
+                    Vector3f pos = new Vector3f(x - w/2f + 0.25f*terrainGrid.getLocalScale().x, 0f, z - w/2f + 0.25f*terrainGrid.getLocalScale().z).addLocal(quad.getWorldTranslation());
                     pos.addLocal(0f, getHeight(quad, pos), 0f);
                     Vector3f scale = Vector3f.UNIT_XYZ;
                     Spatial modelInstance;
+                    float s = 0.1f;
+                    if (i == 0) {
+                        s = 0.4f;
+                    } else if ((x % 16) + (z % 16) == 0) {
+                        s = 0.2f;
+                    }
                     switch ("grass") {
                         case "grass":
-                            modelInstance = grassModel.clone();
-                            float s = 0.2f + rand.nextFloat() * 2f;
+                            modelInstance = rockModel.clone();
                             scale = new Vector3f(s, s, s);
                             break;
                         default:
@@ -264,7 +288,7 @@ public class GameWorldView {
                     }
                     modelInstance.setLocalTranslation(pos);
                     modelInstance.setLocalScale(scale);
-                    modelInstance.addControl(new HideControl());
+                    modelInstance.addControl(new HideControl(20f + 140f * s, targetProvider));
                     objects.attachChild(modelInstance);
                 }
             }

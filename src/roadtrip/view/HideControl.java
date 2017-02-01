@@ -2,6 +2,7 @@ package roadtrip.view;
 
 import java.util.ArrayList;
 import com.jme3.bounding.BoundingVolume;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -12,13 +13,29 @@ import com.jme3.scene.control.Control;
 
 public class HideControl extends AbstractControl
 {
-    private static final float DISTANCE_HIDE = 200;
+    private final float distanceToHide;
     
     private ArrayList<Spatial> children;
     private boolean hidden;
     
     private BoundingVolume prevBv;
+    
+    private TargetProvider targetProvider;
 
+    public HideControl(float distanceToHide) {
+        this(distanceToHide, null);
+    }
+    
+    public HideControl(float distanceToHide, TargetProvider targetProvider) {
+        this.distanceToHide = distanceToHide;
+        this.targetProvider = targetProvider;
+    }
+
+    public void setTargetProvider(TargetProvider targetProvider)
+    {
+        this.targetProvider = targetProvider;
+    }
+    
     @Override
     public Control cloneForSpatial(Spatial spatial)
     {
@@ -29,8 +46,18 @@ public class HideControl extends AbstractControl
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp)
     {
-        Camera cam = vp.getCamera();
-        BoundingVolume bv = spatial.getWorldBound();
+        if (targetProvider == null) {
+            final Camera cam = vp.getCamera();
+            targetProvider = new TargetProvider() {
+
+                @Override
+                public Vector3f getTarget() {
+                    return cam.getLocation();
+                }
+            };
+        }
+        
+        /*BoundingVolume bv = spatial.getWorldBound();
 
         if (bv == null) {
             bv = prevBv;
@@ -38,9 +65,10 @@ public class HideControl extends AbstractControl
             prevBv = bv;
         }
 
-        float distance = bv.distanceTo(cam.getLocation());
+        float distance = bv.distanceTo(targetProvider.getTarget());*/
+        float distance = spatial.getWorldTranslation().distance(targetProvider.getTarget());
 
-        if (distance > HideControl.DISTANCE_HIDE) {
+        if (distance > distanceToHide) {
             if (!hidden) {
                 for (int i = 0; i < children.size(); i++) {
                     children.get(i).removeFromParent();
@@ -73,5 +101,10 @@ public class HideControl extends AbstractControl
         super.setSpatial(spatial);
 
         children = new ArrayList<>(((Node) spatial).getChildren());
+    }
+    
+    public interface TargetProvider
+    {
+        Vector3f getTarget();
     }
 }
