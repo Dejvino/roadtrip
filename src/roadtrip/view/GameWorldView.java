@@ -10,6 +10,7 @@ import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.post.FilterPostProcessor;
@@ -19,6 +20,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
+import com.jme3.scene.shape.Sphere;
 import com.jme3.terrain.geomipmap.*;
 import com.jme3.terrain.geomipmap.grid.FractalTileLoader;
 import com.jme3.terrain.geomipmap.lodcalc.DistanceLodCalculator;
@@ -179,16 +181,8 @@ public class GameWorldView {
         lodControl.setLodCalculator(new DistanceLodCalculator(patchSize + 1, 3.7f)); // patch size, and a multiplier
         terrain.terrainGrid.addControl(lodControl);
         
-        final Spatial treeModel = assetManager.loadModel("Models/tree.j3o");
-        final Spatial houseModel = assetManager.loadModel("Models/house1.j3o");
-        final Spatial grassModel = assetManager.loadModel("Models/grass.j3o");
-        
-        Material rockMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        rockMat.setColor("Color",  ColorRGBA.Gray);
-        Geometry rockGeom = new Geometry("rock", new Box(1f, 1f, 1f));
-        rockGeom.setMaterial(rockMat);
-        final Node rockModel = new Node("rockNode");
-        rockModel.attachChild(rockGeom);
+        final Node treeModel = createTree();
+        final Node rockModel = createRock();
         
         final FineTerrainGrid terrainGrid = terrain.terrainGrid;
         terrainGrid.addListener(new TerrainGridListener() {
@@ -231,27 +225,31 @@ public class GameWorldView {
                     Vector3f pos = mapObject.getPosition();
                     Vector3f scale = Vector3f.UNIT_XYZ;
                     Vector3f boxHalf = Vector3f.UNIT_XYZ;
+                    float rotation = 0f;
                     Spatial modelInstance;
                     RigidBodyControl modelPhysics;
                     switch (mapObject.getType()) {
                         case "tree":
+                            case "house":
                             modelInstance = treeModel.clone();
                             float s = 0.2f + rand.nextFloat() * 5f;
                             scale = new Vector3f(s, s, s);
+                            rotation = rand.nextFloat() * 2f * 3.14f;
                             boxHalf = new Vector3f(s * 0.2f, s * 3f, s * 0.2f);
                             modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
                             break;
-                        case "house":
+                        /*case "house":
                             modelInstance = houseModel.clone();
                             boxHalf = new Vector3f(2f + rand.nextFloat() * 10f, 2f + rand.nextFloat() * 10f, 2f + rand.nextFloat() * 10f);
                             scale = boxHalf;
                             modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
-                            break;
+                            break;*/
                         default:
                             throw new RuntimeException("Unhandled object type: " + mapObject.getType());
                     }
                     modelInstance.setLocalTranslation(pos);
                     modelInstance.setLocalScale(scale);
+                    modelInstance.setLocalRotation(new Quaternion().fromAngles(0f, rotation, 0f));
                     // TODO: physics from the model and not hard-coded
                     //RigidBodyControl control = treeInstance.getControl(RigidBodyControl.class);
                     if (modelPhysics != null) {
@@ -271,6 +269,7 @@ public class GameWorldView {
                     Vector3f pos = new Vector3f(x - w/2f + 0.25f*terrainGrid.getLocalScale().x, 0f, z - w/2f + 0.25f*terrainGrid.getLocalScale().z).addLocal(quad.getWorldTranslation());
                     pos.addLocal(0f, getHeight(quad, pos), 0f);
                     Vector3f scale = Vector3f.UNIT_XYZ;
+                    float rotation = 0f;
                     Spatial modelInstance;
                     float s = 0.1f;
                     if (i == 0) {
@@ -282,12 +281,14 @@ public class GameWorldView {
                         case "grass":
                             modelInstance = rockModel.clone();
                             scale = new Vector3f(s, s, s);
+                            rotation = i * 5.2f;
                             break;
                         default:
                             throw new RuntimeException("Unhandled object type");
                     }
                     modelInstance.setLocalTranslation(pos);
                     modelInstance.setLocalScale(scale);
+                    modelInstance.setLocalRotation(new Quaternion().fromAngles(0f, rotation, 0f));
                     modelInstance.addControl(new HideControl(20f + 140f * s, targetProvider));
                     objects.attachChild(modelInstance);
                 }
@@ -323,6 +324,43 @@ public class GameWorldView {
         });
         /**/
 
+    }
+
+    private Node createTree() {
+        Material trunkMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        trunkMat.setColor("Color",  ColorRGBA.Brown);
+        
+        Material branchesMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        branchesMat.setColor("Color", new ColorRGBA(0.3f, 0.7f, 0.3f, 1f));
+        branchesMat.getAdditionalRenderState().setWireframe(true);
+        
+        Geometry treeTrunk = new Geometry("tree-trunk", new Box(0.1f, 1f, 0.1f));
+        treeTrunk.setLocalTranslation(0f, 0.5f, 0f);
+        treeTrunk.setMaterial(trunkMat);
+        
+        Geometry treeBranches = new Geometry("tree-branches", new Sphere(6, 5, 1f));
+        treeBranches.setLocalTranslation(0f, 1.5f, 0f);
+        treeBranches.setMaterial(branchesMat);
+        
+        Node treeModel = new Node("tree");
+        treeModel.attachChild(treeTrunk);
+        treeModel.attachChild(treeBranches);
+        
+        return treeModel;
+    }
+
+    private Node createRock() {
+        Material rockMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        rockMat.setColor("Color",  ColorRGBA.Gray);
+        rockMat.getAdditionalRenderState().setWireframe(true);
+        
+        Geometry rockGeom = new Geometry("rock", new Sphere(3, 3, 1f));
+        rockGeom.setMaterial(rockMat);
+        
+        Node rockModel = new Node("rockNode");
+        rockModel.attachChild(rockGeom);
+        
+        return rockModel;
     }
 
 }
