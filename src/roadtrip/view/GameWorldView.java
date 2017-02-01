@@ -182,6 +182,7 @@ public class GameWorldView {
         terrain.terrainGrid.addControl(lodControl);
         
         final Node treeModel = createTree();
+        final Node blockModel = createBlock();
         final Node rockModel = createRock();
         
         final FineTerrainGrid terrainGrid = terrain.terrainGrid;
@@ -238,12 +239,19 @@ public class GameWorldView {
                             boxHalf = new Vector3f(s * 0.2f, s * 3f, s * 0.2f);
                             modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
                             break;
-                        /*case "house":
-                            modelInstance = houseModel.clone();
-                            boxHalf = new Vector3f(2f + rand.nextFloat() * 10f, 2f + rand.nextFloat() * 10f, 2f + rand.nextFloat() * 10f);
-                            scale = boxHalf;
+                        case "rock":
+                            modelInstance = blockModel.clone();
+                            boxHalf = new Vector3f(0.5f, 0.5f, 0.5f);
+                            pos.y += 0.2f;
                             modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
-                            break;*/
+                            break;
+                        case "wall":
+                            modelInstance = blockModel.clone();
+                            scale = new Vector3f(1f, 2f, 1f);
+                            boxHalf = new Vector3f(0.5f, 1f, 0.5f);
+                            pos.y += 0.5f;
+                            modelPhysics = new RigidBodyControl(new BoxCollisionShape(boxHalf), 0f);
+                            break;
                         default:
                             throw new RuntimeException("Unhandled object type: " + mapObject.getType());
                     }
@@ -355,6 +363,20 @@ public class GameWorldView {
         rockMat.getAdditionalRenderState().setWireframe(true);
         
         Geometry rockGeom = new Geometry("rock", new Sphere(3, 3, 1f));
+        rockGeom.setMaterial(rockMat);
+        
+        Node rockModel = new Node("rockNode");
+        rockModel.attachChild(rockGeom);
+        
+        return rockModel;
+    }
+    
+    private Node createBlock() {
+        Material rockMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        rockMat.setColor("Color",  ColorRGBA.Gray);
+        rockMat.getAdditionalRenderState().setWireframe(true);
+        
+        Geometry rockGeom = new Geometry("rock", new Box(0.5f, 0.5f, 0.5f));
         rockGeom.setMaterial(rockMat);
         
         Node rockModel = new Node("rockNode");

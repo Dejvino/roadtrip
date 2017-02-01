@@ -23,26 +23,30 @@ A game about a journey involving vehicles and obstacles.
   * Car engine
   * Wheel rolling
   * Wheel slips
-* Camera
+* Graphics
+  * themeless
   * 3rd person view (following the player)
+  * depth-of-field filter
+  * distance-based hiding of objects
 * Input
   * Keyboard
   * Game menu
 
 ### TODO
 #### Stage 0 :: Prototype
-* done
+* DONE
 
 #### Stage 1 :: Core Game
 * Joystick controls
 * FPV camera
 * Main Menu
 * Winning condition (location)
+* Loading screen
 * Health indicator
-* Persistent content on terrain blocks
 * NPC AI
+* Enemy objects - mines
 * Enemy NPCs - punching, shooting
-* Interacting with the environment
+* Interacting with the environment - opening of gates
 
 #### Stage 2 :: Filled Game
 * Roadblocks
@@ -50,8 +54,11 @@ A game about a journey involving vehicles and obstacles.
 * Car models
 * Scenery models
 * Intro, Outro
+* Dialogs
+* Fuel
 
 #### Stage 3 :: Overflowing Game
 * Stealth
 * Clothing
 * Car customization
+* Destructable environment

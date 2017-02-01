@@ -44,13 +44,35 @@ public class ProceduralMapQuadBlock extends AbstractProceduralBlock
 			float height = terrainQuad.getHeight(pos);
                         String type;
                         if (quadRand.nextInt(10) == 0) {
-                            type = "house";
+                            type = "rock";
                         } else {
                             type = "tree";
                         }
 			Vector3f location = new Vector3f(pos.x, height, pos.y);
 			mapObjects.add(new MapObjectInstance(type, location));
 		}
+                
+                // walls
+                if (quadRand.nextInt(3) == 0) {
+                    int dir = quadRand.nextInt(4);
+                    for (int i = 0; i < quadRand.nextInt(terrainQuad.getPatchSize() * (10 + quadRand.nextInt(100))); i++) {
+                            Vector2f pos;
+                            if (prevPos == null || quadRand.nextFloat() < 0.1f) {
+                                    pos = new Vector2f((quadRand.nextFloat() - 0.5f) * cellSize, (quadRand.nextFloat() - 0.5f) * cellSize)
+						.addLocal(quadPos);
+                            } else {
+                                    if (quadRand.nextInt(10) == 0) {
+                                        dir = (dir + quadRand.nextInt(2) * 2 - 1) % 4;
+                                    }
+                                    pos = new Vector2f(dir == 1 ? 1 : (dir == 3 ? -1 : 0), dir == 0 ? 1 : (dir == 2 ? -1 : 0)).addLocal(prevPos);
+                            }
+                            prevPos = pos;
+                            float height = terrainQuad.getHeight(pos);
+                            String type = "wall";
+                            Vector3f location = new Vector3f(pos.x, height, pos.y);
+                            mapObjects.add(new MapObjectInstance(type, location));
+                    }
+                }
 	}
 
 	public Iterable<? extends MapObjectInstance> getMapObjects()
