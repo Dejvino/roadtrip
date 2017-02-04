@@ -4,8 +4,11 @@ import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.bullet.control.VehicleControl;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
@@ -22,6 +25,7 @@ import roadtrip.view.GameMenuNode;
 import roadtrip.view.GameWorldView;
 import roadtrip.view.HideControl;
 import roadtrip.view.VehicleNode;
+import roadtrip.view.model.CameraType;
 import roadtrip.view.model.GameWorldState;
 import roadtrip.view.model.Player;
 
@@ -29,7 +33,7 @@ import roadtrip.view.model.Player;
  *
  * @author dejvino
  */
-public class RoadTrip extends GameApplication implements ActionListener {
+public class RoadTrip extends GameApplication implements ActionListener, AnalogListener {
 
     public static void main(String[] args) {
         RoadTrip app = new RoadTrip();
@@ -43,6 +47,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
 
     private GameMenuNode gameMenuNode;
 
+    private CameraType cameraType = CameraType.FIRST_PERSON;
     private ChaseCamera chaseCam;
 
     private Player player = new Player();
@@ -53,6 +58,8 @@ public class RoadTrip extends GameApplication implements ActionListener {
     
     float inputTurning;
     float inputAccel;
+    
+    float lookX, lookY;
 
     int score = 0;
 
@@ -68,6 +75,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
             attachDebugStates();
         }
         
+        inputManager.setCursorVisible(false);
         setupKeys();
 
         //audioRenderer.setEnvironment(Environment.Dungeon);
@@ -142,15 +150,15 @@ public class RoadTrip extends GameApplication implements ActionListener {
         inputManager.addMapping("Reset", new KeyTrigger(KeyInput.KEY_RETURN));
         inputManager.addMapping("Esc", new KeyTrigger(KeyInput.KEY_ESCAPE));
         inputManager.addMapping("Pause", new KeyTrigger(KeyInput.KEY_P));
-        inputManager.addListener(this, "Lefts");
-        inputManager.addListener(this, "Rights");
-        inputManager.addListener(this, "Ups");
-        inputManager.addListener(this, "Downs");
-        inputManager.addListener(this, "Revs");
-        inputManager.addListener(this, "Space");
-        inputManager.addListener(this, "Reset");
-        inputManager.addListener(this, "Esc");
-        inputManager.addListener(this, "Pause");
+        inputManager.addMapping("View", new KeyTrigger(KeyInput.KEY_V));
+        inputManager.addMapping("LookX-", new MouseAxisTrigger(MouseInput.AXIS_X, true));
+        inputManager.addMapping("LookX+", new MouseAxisTrigger(MouseInput.AXIS_X, false));
+        inputManager.addMapping("LookY-", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
+        inputManager.addMapping("LookY+", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+        inputManager.addListener(this, new String[] {
+                "Lefts", "Rights", "Ups", "Downs", "Revs", "Space", "Reset", "Esc", "Pause", "View",
+                "LookX-", "LookX+", "LookY-", "LookY+"
+            });
     }
 
     private void addCar()
@@ -196,6 +204,9 @@ public class RoadTrip extends GameApplication implements ActionListener {
     {
         player.node = addPerson();
         player.characterControl = player.node.getControl(BetterCharacterControl.class);
+        player.headNode = new Node("head");
+        player.headNode.setLocalTranslation(0f, 2.5f, 0f);
+        player.node.attachChild(player.headNode);
     }
     
     private void addTarget()
@@ -222,10 +233,11 @@ public class RoadTrip extends GameApplication implements ActionListener {
     
     @Override
     public void updateGame(float tpf) {
-        Vector3f playerLocation = player.node.getWorldTranslation();
-        Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
-
-        float focusDist = cam.getLocation().distance(player.node.getWorldTranslation()) / 10f;
+        float focusDist = 20f;
+        chaseCam.setEnabled(cameraType == CameraType.CHASE);
+        if (cameraType == CameraType.CHASE) {
+            focusDist = cam.getLocation().distance(player.node.getWorldTranslation()) / 10f;
+        }
         dofFilter.setFocusDistance(focusDist * 1.1f);
         dofFilter.setFocusRange(focusDist * 0.9f);
         
@@ -240,7 +252,7 @@ public class RoadTrip extends GameApplication implements ActionListener {
         
         if (player.vehicleNode == null) {
             player.characterControl.setViewDirection(new Quaternion().fromAngleAxis(inputTurning * tpf, Vector3f.UNIT_Y).mult(player.characterControl.getViewDirection()));
-            player.characterControl.setWalkDirection(new Vector3f(player.characterControl.getViewDirection()).mult(inputAccel * tpf * 1000f));
+            player.characterControl.setWalkDirection(new Vector3f(player.characterControl.getViewDirection()).mult(inputAccel * tpf * 1000f).multLocal(1f, 0f, 1f));
         }
         
         Vector3f playerPos2d = new Vector3f(player.node.getWorldTranslation());
@@ -258,6 +270,23 @@ public class RoadTrip extends GameApplication implements ActionListener {
         compassNode.setLocalRotation(new Quaternion().fromAngles(0f, (float)Math.atan2(targetDir.x, targetDir.z)/*targetDir.angleBetween(Vector3f.UNIT_Z)*/, 0f));
     }
 
+    @Override
+    protected void updatePreRender(float tpf) {
+        super.updatePreRender(tpf);
+        
+        Vector3f playerLocation = player.headNode.getWorldTranslation();
+        Vector3f newLocation = new Vector3f(playerLocation).add(new Vector3f(-1f, 1.5f, 2.4f).mult(20f));
+
+        if (cameraType == CameraType.FIRST_PERSON) {
+            cam.setLocation(new Vector3f().addLocal(playerLocation));
+            Vector3f lookAtDir = new Vector3f((float)Math.cos(lookX), (float)Math.tan(lookY - 1f), (float)Math.sin(lookX)).normalizeLocal();
+            Quaternion camRot = new Quaternion();
+            camRot.lookAt(lookAtDir, Vector3f.UNIT_Y);
+            cam.setRotation(camRot);
+            player.characterControl.setViewDirection(lookAtDir);
+        }
+    }
+    
 	protected void onReachedTarget()
 	{
 		score++;
@@ -270,6 +299,11 @@ public class RoadTrip extends GameApplication implements ActionListener {
 
 	@Override
     public void onAction(String binding, boolean value, float tpf) {
+        if (binding.equals("View")) {
+            if (value) {
+                cameraType = cameraType == CameraType.CHASE ? CameraType.FIRST_PERSON : CameraType.CHASE;
+            }
+        }
         if (gamePaused) {
             if (binding.equals("Lefts")) {
                 // meh
@@ -445,6 +479,26 @@ public class RoadTrip extends GameApplication implements ActionListener {
     }
 
     @Override
+    public void onAnalog(String name, float value, float tpf) {
+        if (gamePaused) { return; }
+        float speedX = 100f;
+        float speedY = 100f;
+        if ("LookX-".equals(name)) {
+            lookX += -value * tpf * speedX;
+        }
+        if ("LookX+".equals(name)) {
+            lookX += value * tpf * speedX;
+        }
+        if ("LookY-".equals(name)) {
+            lookY += -value * tpf * speedY;
+        }
+        if ("LookY+".equals(name)) {
+            lookY += value * tpf * speedY;
+        }
+        lookY = (float)Math.max(0, Math.min(lookY, 2f));
+    }
+ 
+    @Override
     protected void onGamePause(boolean paused) {
         super.onGamePause(paused);
         
@@ -454,5 +508,4 @@ public class RoadTrip extends GameApplication implements ActionListener {
             gameMenuNode.removeFromParent();
         }
     }
-    
 }

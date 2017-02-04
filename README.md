@@ -6,9 +6,9 @@ A game about a journey involving vehicles and obstacles.
 ## Status
 ### DONE
 * Walking
-  * Enter / Exit a car (Enter)
+  * Enter / Exit a car (key: Enter)
 * Driving
-  * Keyboard controls (WASDX)
+  * Keyboard controls (keys: WASDX)
   * Physics-based vehicles
   * 1 model, 2 debugs
 * Map
@@ -25,7 +25,7 @@ A game about a journey involving vehicles and obstacles.
   * Wheel slips
 * Graphics
   * themeless
-  * 3rd person view (following the player)
+  * 1st & 3rd person view (key: V)
   * depth-of-field filter
   * distance-based hiding of objects
 * Input
@@ -38,7 +38,6 @@ A game about a journey involving vehicles and obstacles.
 
 #### Stage 1 :: Core Game
 * Joystick controls
-* FPV camera
 * Main Menu
 * Winning condition (location)
 * Loading screen

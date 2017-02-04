@@ -10,6 +10,7 @@ import roadtrip.view.VehicleNode;
  */
 public class Player {
     public Node node;
+    public Node headNode;
     public BetterCharacterControl characterControl;
     public Vector3f jumpForce = new Vector3f(0, 3000, 0);
     public Vector3f walkDir = new Vector3f();
