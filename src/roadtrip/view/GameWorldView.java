@@ -89,9 +89,6 @@ public class GameWorldView {
         al.setColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
         rootNode.addLight(al);
         
-        // load sky
-        rootNode.attachChild(SkyFactory.createSky(assetManager, "Textures/Sky/Bright/BrightSky.dds", false));
-        
         // TERRAIN TEXTURE material
         terrain.mat_terrain = new Material(assetManager, "Common/MatDefs/Terrain/HeightBasedTerrain.j3md");
         if (DEBUG) {

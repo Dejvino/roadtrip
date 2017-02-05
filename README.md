@@ -29,7 +29,8 @@ A game about a journey involving vehicles and obstacles.
   * fog, depth-of-field filter
   * distance-based hiding of objects
 * Input
-  * Keyboard
+  * Keyboard (walking + driving)
+  * Mouse (walking)
   * Game menu
 
 ### TODO
