@@ -26,7 +26,7 @@ A game about a journey involving vehicles and obstacles.
 * Graphics
   * themeless
   * 1st & 3rd person view (key: V)
-  * depth-of-field filter
+  * fog, depth-of-field filter
   * distance-based hiding of objects
 * Input
   * Keyboard
