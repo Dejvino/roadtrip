@@ -15,6 +15,7 @@ import com.jme3.material.Material;
 import com.jme3.math.*;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.filters.DepthOfFieldFilter;
+import com.jme3.post.filters.FogFilter;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -49,6 +50,7 @@ public class RoadTrip extends GameApplication implements ActionListener, AnalogL
 
     private CameraType cameraType = CameraType.FIRST_PERSON;
     private ChaseCamera chaseCam;
+    private float camFov = 85;
 
     private Player player = new Player();
 
@@ -118,18 +120,29 @@ public class RoadTrip extends GameApplication implements ActionListener, AnalogL
         addCompass();
 	addGameMenu();
         
+        cam.setFrustumPerspective(camFov, settings.getWidth() / ((float)settings.getHeight()), 0.5f, 150f);
+        
         chaseCam = new ChaseCamera(cam, player.node, inputManager);
         chaseCam.setDefaultDistance(60f);
         chaseCam.setSmoothMotion(true);
         
         fpp = new FilterPostProcessor(assetManager);
         //fpp.setNumSamples(4);
-
+        
+        FogFilter fog=new FogFilter();
+        fog.setFogColor(new ColorRGBA(0.02f, 0.02f, 0.05f, 1.0f));
+        fog.setFogDistance(1000);
+        fog.setFogDensity(3.0f);
+        fpp.addFilter(fog);
+        
         dofFilter = new DepthOfFieldFilter();
         dofFilter.setFocusRange(5f);
         dofFilter.setFocusDistance(6f);
         dofFilter.setBlurScale(0.6f);
         fpp.addFilter(dofFilter);
+        
+        viewPort.addProcessor(fpp);
+        
         viewPort.addProcessor(fpp);
     }
 

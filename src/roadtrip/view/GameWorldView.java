@@ -34,6 +34,7 @@ import com.jme3.terrain.noise.filter.SmoothFilter;
 import com.jme3.terrain.noise.fractal.FractalSum;
 import com.jme3.terrain.noise.modulator.NoiseModulator;
 import com.jme3.texture.Texture;
+import com.jme3.util.SkyFactory;
 import java.util.Random;
 import roadtrip.model.MapObjectInstance;
 import roadtrip.model.ProceduralMapQuadBlock;
@@ -87,6 +88,9 @@ public class GameWorldView {
         AmbientLight al = new AmbientLight();
         al.setColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
         rootNode.addLight(al);
+        
+        // load sky
+        rootNode.attachChild(SkyFactory.createSky(assetManager, "Textures/Sky/Bright/BrightSky.dds", false));
         
         // TERRAIN TEXTURE material
         terrain.mat_terrain = new Material(assetManager, "Common/MatDefs/Terrain/HeightBasedTerrain.j3md");
